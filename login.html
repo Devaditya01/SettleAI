@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sign in to Settle — Payment clarity, finally.">
+  <meta name="theme-color" content="#11110f">
+  <title>Sign In — Settle</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%2311110f'/%3E%3Cpath d='M11 15h18M11 21h13M11 27h8' stroke='%23cfbda0' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/css/landing.css">
+  <style>
+    .login-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100svh;
+      padding: 2rem;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 2.75rem;
+      animation: card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .login-heading {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 600;
+      line-height: 1.1;
+      margin-bottom: 0.4rem;
+    }
+
+    .login-sub {
+      color: var(--muted);
+      font-size: 0.97rem;
+      margin-bottom: 2rem;
+    }
+
+    .field {
+      margin-bottom: 1.2rem;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+    }
+
+    .field input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 1rem;
+      transition: border-color 0.2s, background 0.2s;
+      box-sizing: border-box;
+    }
+
+    .field input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .field input::placeholder { color: var(--muted); opacity: 0.5; }
+
+    .login-submit {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.95rem 1rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .login-submit:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.92; }
+    .login-submit:active:not(:disabled) { transform: translateY(0); }
+    .login-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(17,17,15,0.25);
+      border-top-color: var(--bg);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .login-submit.loading .spinner { display: block; }
+    .login-submit.loading .btn-label { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .login-error {
+      margin-top: 1rem;
+      padding: 0.7rem 1rem;
+      background: rgba(255,80,80,0.08);
+      border: 1px solid rgba(255,80,80,0.2);
+      border-radius: 8px;
+      color: #ff7070;
+      font-size: 0.88rem;
+      display: none;
+    }
+    .login-error.visible { display: block; }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .login-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav-wrap">
+    <a class="logo" href="index.html" aria-label="Back to Settle home">
+      <span class="mark"><i></i><i></i><i></i></span>settle<span>.</span>
+    </a>
+  </header>
+
+  <main class="login-page" id="main">
+    <div class="login-card">
+      <h1 class="login-heading">Sign in</h1>
+      <p class="login-sub">Access your settlement dashboard.</p>
+
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            required
+          >
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required
+          >
+        </div>
+
+        <button type="submit" class="login-submit" id="login-btn">
+          <span class="btn-label">Sign in ↗</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+
+        <div class="login-error" id="login-error" role="alert"></div>
+      </form>
+
+      <p class="login-footer"><a href="index.html">← Back to home</a></p>
+    </div>
+  </main>
+
+  <!-- Supabase via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Local config (gitignored) -->
+  <script src="config.js"></script>
+  <script src="assets/js/login.js"></script>
+</body>
+</html>
