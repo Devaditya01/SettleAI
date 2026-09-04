@@ -61,6 +61,8 @@ class TrainingBuildResult:
 
 
 def _as_columns(df: pd.DataFrame) -> pd.DataFrame:
+    if "transaction_id" in df.columns:
+        return df.reset_index(drop=True).copy()
     if df.index.name == "transaction_id":
         return df.reset_index()
     return df.copy()

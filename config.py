@@ -1,19 +1,21 @@
-# Settlement Intelligence Agent — Configuration
-# These are demo assumptions, not universal banking standards.
+"""Configuration settings for the Settlement Intelligence Agent."""
 
+# Settlement SLAs and warning thresholds (in minutes)
 SETTLEMENT_SLA_MINUTES = 30
-
 PREDICTION_CHECKPOINT_MINUTES = 10
+BANK_WARNING_MINUTES = 15
+LEDGER_WARNING_MINUTES = 10
+AT_RISK_THRESHOLD_MINUTES = 15
 
+# ML risk thresholds
 HIGH_RISK_THRESHOLD = 0.70
 MEDIUM_RISK_THRESHOLD = 0.40
 
-BANK_WARNING_MINUTES = 15
-LEDGER_WARNING_MINUTES = 5
-
+# Random seed for reproducibility
 RANDOM_SEED = 42
 
-# Paths
+# Defaults and paths
+DEFAULT_CURRENCY = "INR"
 DATA_DIR = "data"
 MODEL_PATH = "models/delay_model.joblib"
 
