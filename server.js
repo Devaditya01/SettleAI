@@ -22,12 +22,13 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-  let reqPath = decodeURIComponent(req.url.split('?')[0]);
+  const [rawPath, queryString] = req.url.split('?');
+  let reqPath = decodeURIComponent(rawPath);
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
   }
 
-  const filePath = path.normalize(path.join(__dirname, reqPath));
+  let filePath = path.normalize(path.join(__dirname, reqPath));
 
   if (!filePath.startsWith(__dirname)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
@@ -36,18 +37,31 @@ const server = http.createServer((req, res) => {
   }
 
   fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not Found');
-      return;
+    if (!err && stats.isDirectory()) {
+      if (!reqPath.endsWith('/')) {
+        const query = queryString ? `?${queryString}` : '';
+        res.writeHead(301, { Location: `${reqPath}/${query}` });
+        res.end();
+        return;
+      }
+
+      filePath = path.join(filePath, 'index.html');
     }
 
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    fs.stat(filePath, (fileErr, fileStats) => {
+      if (fileErr || !fileStats.isFile()) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not Found');
+        return;
+      }
 
-    res.writeHead(200, { 'Content-Type': contentType });
-    const stream = fs.createReadStream(filePath);
-    stream.pipe(res);
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+      res.writeHead(200, { 'Content-Type': contentType });
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+    });
   });
 });
 
