@@ -62,4 +62,20 @@
       window.location.replace('dashboard/index.html');
     }
   });
+
+  const googleBtn = document.getElementById('google-btn');
+  if (googleBtn) {
+    googleBtn.addEventListener('click', async () => {
+      clearError();
+      const { data, error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/dashboard/index.html'
+        }
+      });
+      if (error) {
+        showError(error.message || 'Google sign-in failed.');
+      }
+    });
+  }
 })();

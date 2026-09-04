@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 _api_key = os.getenv("GEMINI_API_KEY")
-_MODEL_NAME = "gemini-2.5-flash"
+_MODEL_NAME = "gemini-flash-latest"
 
 def fallback_explanation(evidence_packet: dict) -> str:
     """
