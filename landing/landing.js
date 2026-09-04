@@ -125,3 +125,38 @@ function storyStep(index){
 narrative.forEach((_,index)=>{const b=document.createElement('button');b.textContent=String(index+1).padStart(2,'0');b.setAttribute('aria-label',`Read trace step ${index+1}`);b.addEventListener('click',()=>storyStep(index));storyControls.append(b);});
 storyStep(0);
 document.querySelector('.watch-story').addEventListener('click',()=>storyStep(0));
+
+// This money-flow illustration uses the existing TXN-1041 synthetic fixture.
+// Amounts are integer paise; animation never invents intermediate balances.
+const moneyScene=document.querySelector('.money-scene');
+const moneyVisual=document.querySelector('.money-visual');
+const moneySteps=[
+  {label:'PAYMENT CAPTURED',amount:849900,description:'Customer payment confirmed by the gateway.',status:'01 / Gateway record verified',symbol:'↗',bank:'Awaiting credit'},
+  {label:'NET PAYABLE',amount:832902,description:'₹8,499.00 captured − ₹169.98 recorded fee.',status:'02 / Ledger amount explained',symbol:'=',bank:'₹8,329.02 expected'},
+  {label:'SETTLEMENT CREDITED',amount:832902,description:'Successful retry confirmed by the bank record.',status:'03 / Bank and ledger matched',symbol:'✓',bank:'₹8,329.02 credited'}
+];
+let currentMoneyStep=0;
+let lastMoneyChange=performance.now();
+function showMoneyStep(index){
+  currentMoneyStep=index;lastMoneyChange=performance.now();
+  const step=moneySteps[index];moneyScene.dataset.moneyPhase=String(index);
+  const amount=(step.amount/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const [whole,fraction]=amount.split('.');
+  document.getElementById('money-label').textContent=step.label;
+  document.getElementById('money-amount').innerHTML=`₹${whole}<span>.${fraction}</span>`;
+  document.getElementById('money-description').textContent=step.description;
+  document.getElementById('money-status').textContent=step.status;
+  document.getElementById('money-symbol').textContent=step.symbol;
+  document.getElementById('bank-result').textContent=step.bank;
+  document.getElementById('bank-symbol').textContent=index===2?'✓':'↗';
+  document.querySelectorAll('[data-money-stage]').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-pressed',String(i===index));});
+  if(!reduced.matches&&!motionPaused)document.getElementById('money-amount').animate([{opacity:.2,transform:'translateY(5px)'},{opacity:1,transform:'translateY(0)'}],{duration:400,easing:'ease-out'});
+}
+document.querySelectorAll('[data-money-stage]').forEach(button=>button.addEventListener('click',()=>showMoneyStep(Number(button.dataset.moneyStage))));
+const resizeMoneyScene=()=>moneyVisual.style.setProperty('--scene-scale',moneyVisual.clientWidth/600);
+new ResizeObserver(resizeMoneyScene).observe(moneyVisual);resizeMoneyScene();
+setInterval(()=>{
+  if(reduced.matches||motionPaused||document.hidden||performance.now()-lastMoneyChange<4500)return;
+  const bounds=moneyVisual.getBoundingClientRect();
+  if(bounds.bottom>0&&bounds.top<innerHeight)showMoneyStep((currentMoneyStep+1)%moneySteps.length);
+},500);
