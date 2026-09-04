@@ -3,11 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#11110f">
+  <script src="js/theme.js"></script>
   <meta name="description" content="An interactive settlement investigation demo with synthetic gateway, bank, and ledger records.">
   <title>Settle — Payment clarity, finally.</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%236a47dc'/%3E%3Cpath d='M11 15h18M11 21h13M11 27h8' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%2311110f'/%3E%3Cpath d='M11 15h18M11 21h13M11 27h8' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/refinement.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to dashboard</a>
@@ -23,8 +27,8 @@
         <button class="nav-item" data-view="sources"><span data-icon="database"></span>Data sources<span class="nav-dot"></span></button>
       </nav>
       <div class="sidebar-bottom">
-        <div class="demo-note"><span class="demo-note-icon" data-icon="sparkles"></span><strong>Real clarity. Mock money.</strong><p>Explore how evidence turns a payment question into an answer.</p><button id="guide-button">Explore the demo <span data-icon="arrow-right"></span></button></div>
-        <div class="sidebar-foot"><span data-icon="shield"></span>PS-8 · Interactive prototype</div>
+        <button class="quick-guide" id="guide-button"><span data-icon="help"></span>Quick tour</button>
+        <a class="landing-link" id="landing-link" href="../index.html" aria-label="Back to landing page"><span aria-hidden="true">↗</span> Back to Settle</a>
         <div class="profile"><span class="avatar">AS</span><div><strong>Alex Shah</strong><small>Support analyst · Demo</small></div></div>
       </div>
     </aside>
@@ -32,15 +36,15 @@
     <div class="workspace-shell">
       <header class="topbar">
         <div class="breadcrumb"><span>Workspace</span><span class="slash">/</span><strong id="breadcrumb-current">Overview</strong></div>
-        <div class="topbar-actions"><span class="environment"><span></span>Mock environment</span><button class="icon-button" id="help-button" aria-label="About this demo" data-icon="help"></button><span class="avatar avatar-small">AS</span></div>
+        <div class="topbar-actions"><button class="theme-toggle" id="theme-toggle" aria-label="Switch to Pearl theme"><span class="theme-swatch" aria-hidden="true"></span><span>Pearl</span></button><span class="environment"><span></span>Demo</span><button class="icon-button" id="help-button" aria-label="About this demo" data-icon="help"></button></div>
       </header>
       <div class="content-grid">
         <main id="main" tabindex="-1">
-          <div class="page-heading"><div><div class="eyebrow">PAYMENT OPERATIONS, SIMPLIFIED</div><h1 id="page-title">Your money. In the clear.</h1><p id="page-subtitle">A little less chasing. A lot more clarity.</p></div><button class="button button-outline export-button" id="export-button"><span data-icon="download"></span>Export<span class="export-long"> report</span></button></div>
+          <div class="page-heading"><div><h1 id="page-title">Your money. In the clear.</h1><p id="page-subtitle" hidden></p></div><button class="button button-outline export-button" id="export-button"><span data-icon="download"></span>Export<span class="export-long"> report</span></button></div>
 
           <section class="hero" id="hero" aria-label="Settlement assistant introduction">
-            <div class="hero-content"><div class="hero-badge"><span data-icon="sparkles"></span>YOUR SETTLEMENT COPILOT</div><h2>Every payment has a story.<br>Find the missing piece.</h2><p>Trace the gateway, bank, and ledger.<br>Get an answer you can actually verify.</p><button class="hero-button" id="hero-investigate">Investigate a settlement <span data-icon="arrow-up-right"></span></button></div>
-            <div class="hero-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div><div class="orb-center"><span data-icon="sparkles"></span></div><div class="orbit-node node-one" data-icon="card"></div><div class="orbit-node node-two" data-icon="bank"></div><div class="orbit-node node-three" data-icon="ledger"></div><span class="art-star star-one">✦</span><span class="art-star star-two">✧</span><span class="orbit-caption">CONNECT THE DOTS.</span></div>
+            <div class="hero-content"><h2>Follow any payment.</h2><p>From gateway to bank, in one view.</p><button class="hero-button" id="hero-investigate">Trace a payment <span data-icon="arrow-up-right"></span></button></div>
+            <div class="payment-art" aria-hidden="true"><div class="dashboard-note"><span>GATEWAY / CAPTURED</span><strong>₹8,499.00</strong><small>TXN-1041 · FEE ₹169.98</small></div><div class="dashboard-bank"><span>BANK / CREDITED</span><strong>₹8,329.02</strong><small><i>✓</i>Successful retry confirmed</small></div></div>
           </section>
 
           <section class="metrics" id="metrics" aria-label="Settlement summary"></section>
@@ -51,19 +55,19 @@
           </section>
 
           <section class="card transaction-card" id="transaction-card">
-            <div class="card-heading"><div class="heading-inline"><h2 id="table-title">Transactions</h2><span class="count-chip" id="transaction-count"></span></div><span class="table-hint">Select a row to investigate <span data-icon="arrow-right"></span></span></div>
+            <div class="card-heading"><div class="heading-inline"><h2 id="table-title">Transactions</h2><span class="count-chip" id="transaction-count"></span></div></div>
             <div class="table-controls"><div class="tabs" role="group" aria-label="Transaction status"><button class="tab active" data-filter="all">All</button><button class="tab" data-filter="settled">Settled</button><button class="tab" data-filter="pending">Pending</button><button class="tab" data-filter="attention">Needs attention<span class="tab-dot"></span></button></div><div class="search-filter"><label class="search-box"><span data-icon="search"></span><input id="transaction-search" type="search" placeholder="Search ID or customer" aria-label="Search transactions"></label><label class="date-filter"><span data-icon="calendar"></span><select id="date-filter" aria-label="Filter by payment date"><option value="all">All dates</option><option value="2026-09-04">04 Sep 2026</option><option value="2026-09-03">03 Sep 2026</option><option value="2026-09-02">02 Sep 2026</option><option value="2026-09-01">01 Sep 2026</option></select></label></div></div>
             <div class="table-scroll"><table><thead><tr><th scope="col">Transaction</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Payment date</th><th scope="col"><span class="sr-only">Investigate</span></th></tr></thead><tbody id="transaction-rows"></tbody></table></div>
             <div class="table-footer"><span id="table-summary"></span><span>Amounts in INR <span class="footer-dot">·</span> Synthetic records</span></div>
           </section>
           <section id="source-view" hidden></section>
-          <footer class="main-footer"><span><span data-icon="lock"></span>Demo data only. No live payments or AI calls.</span><span>Made for the moments after payment.</span></footer>
+          <footer class="main-footer"><span><span data-icon="lock"></span>Synthetic data · Local demo</span></footer>
         </main>
 
         <aside class="copilot" aria-label="Settlement copilot">
-          <div class="copilot-header"><div class="copilot-logo" data-icon="sparkles"></div><div><h2>Settlement copilot</h2><span><i></i>Evidence-first answers</span></div><span class="copilot-demo">DEMO</span></div>
-          <div class="copilot-body" id="copilot-body"><div class="copilot-intro"><span class="tiny-label">LET’S CONNECT THE DOTS</span><h3>A question in.<br>Clarity out.</h3><p>Select any transaction or ask about a payment below.</p></div><div id="investigation-content" aria-live="polite"></div></div>
-          <div class="copilot-compose"><div class="suggestions"><button data-question="breakdown">Amount breakdown</button><button data-question="next">What’s next?</button></div><form id="chat-form"><label for="chat-input" class="sr-only">Ask about a settlement</label><textarea id="chat-input" rows="2" placeholder="Ask about a transaction…"></textarea><div class="compose-bottom"><span><span data-icon="link"></span>3 mock sources</span><button type="submit" class="send-button" aria-label="Send question"><span data-icon="arrow-up"></span></button></div></form><p class="compose-note">Verified facts. Visible gaps. No guesswork.</p></div>
+          <div class="copilot-header"><div class="copilot-logo" data-icon="sparkles"></div><div><h2>Settlement copilot</h2><span><i></i>Gateway · Bank · Ledger</span></div></div>
+          <div class="copilot-body" id="copilot-body"><div id="investigation-content" aria-live="polite"></div></div>
+          <div class="copilot-compose"><div class="suggestions"><button data-question="breakdown">Amount breakdown</button><button data-question="next">What’s next?</button></div><form id="chat-form"><label for="chat-input" class="sr-only">Ask about a settlement</label><textarea id="chat-input" rows="2" placeholder="Ask about a transaction…"></textarea><div class="compose-bottom"><span><span data-icon="link"></span>3 mock sources</span><button type="submit" class="send-button" aria-label="Send question"><span data-icon="arrow-up"></span></button></div></form></div>
         </aside>
       </div>
     </div>

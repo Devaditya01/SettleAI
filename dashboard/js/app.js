@@ -135,9 +135,9 @@ function renderMetrics(){
   const pending=transactions.filter(t=>reconcile(t).status==='pending');
   const attention=transactions.filter(t=>['failed','review'].includes(reconcile(t).status));
   const metrics=[
-    {label:'Settled & reconciled',value:shortMoney(settled.reduce((s,t)=>s+reconcile(t).credited_minor,0)),note:`${settled.length} transactions matched`,icon:'bank',color:'#81b5a0',points:'0,23 8,18 15,20 24,11 31,14 40,7 49,11 58,2'},
-    {label:'Awaiting settlement',value:shortMoney(pending.reduce((s,t)=>s+reconcile(t).expected_minor,0)),note:`${pending.length} payouts scheduled`,icon:'clock',color:'#c8ad7c',points:'0,22 10,18 20,18 28,11 40,11 48,7 58,7'},
-    {label:'Needs your attention',value:String(attention.length).padStart(2,'0'),note:'2 failed · 2 to review',icon:'alert',color:'#cba0b1',points:'0,20 10,16 21,19 30,9 41,9 48,4 58,4'}
+    {label:'Settled',value:shortMoney(settled.reduce((s,t)=>s+reconcile(t).credited_minor,0)),note:`${settled.length} transactions matched`,icon:'bank',color:'#81b5a0',points:'0,23 8,18 15,20 24,11 31,14 40,7 49,11 58,2'},
+    {label:'Pending',value:shortMoney(pending.reduce((s,t)=>s+reconcile(t).expected_minor,0)),note:`${pending.length} payouts scheduled`,icon:'clock',color:'#c8ad7c',points:'0,22 10,18 20,18 28,11 40,11 48,7 58,7'},
+    {label:'Needs attention',value:String(attention.length).padStart(2,'0'),note:'2 failed · 2 to review',icon:'alert',color:'#cba0b1',points:'0,20 10,16 21,19 30,9 41,9 48,4 58,4'}
   ];
   $('#metrics').innerHTML=metrics.map(m=>`<article class="metric"><div class="metric-label">${m.label}<span class="metric-icon">${icon(m.icon)}</span></div><strong>${m.value}</strong><div class="metric-bottom"><i></i>${m.note}</div><svg class="metric-sparkline" viewBox="0 0 60 28" aria-hidden="true"><polyline points="${m.points}" fill="none" stroke="${m.color}" stroke-width="1.5"/></svg></article>`).join('');
   $('#nav-exceptions').textContent=attention.length;
@@ -211,7 +211,7 @@ function renderSources(){
 }
 function setView(view){
   state.view=view;state.filter='all';state.search='';state.date='all';$('#transaction-search').value='';$('#date-filter').value='all';
-  const info={overview:['Overview','Your money. In the clear.','A little less chasing. A lot more clarity.'],transactions:['Transactions','Every payment, connected.','Follow a payment from capture to bank credit.'],exceptions:['Exceptions','The gaps worth a closer look.','Failed attempts and records that need verification.'],sources:['Data sources','The evidence behind the answer.','Three sources. One connected view of your payments.']}[view];
+  const info={overview:['Overview','Overview','A little less chasing. A lot more clarity.'],transactions:['Transactions','Transactions','Follow a payment from capture to bank credit.'],exceptions:['Exceptions','Exceptions','Failed attempts and records that need verification.'],sources:['Data sources','Data sources','Three sources. One connected view of your payments.']}[view];
   $('#breadcrumb-current').textContent=info[0];$('#page-title').textContent=info[1];$('#page-subtitle').textContent=info[2];
   $$('.nav-item').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   $('#hero').hidden=view!=='overview';$('#flow-card').hidden=view!=='overview';$('#metrics').hidden=view==='sources';$('#transaction-card').hidden=view==='sources';$('#source-view').hidden=view!=='sources';$('.tabs').hidden=view==='exceptions';$('#table-title').textContent=view==='exceptions'?'Exception queue':'Transactions';

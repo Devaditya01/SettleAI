@@ -5,7 +5,7 @@ const finePointer = window.matchMedia('(pointer: fine)');
 let motionPaused=false;
 if (!reduced.matches) root.classList.add('js-motion');
 // No image or network request can indefinitely hold the entry transition.
-setTimeout(() => root.classList.add('ready'), reduced.matches ? 0 : 900);
+setTimeout(() => root.classList.add('ready'), reduced.matches ? 0 : 80);
 const nav = document.querySelector('.nav-wrap');
 const hero = document.querySelector('.hero');
 const visible = new IntersectionObserver(entries => {
@@ -71,9 +71,9 @@ document.querySelectorAll('.tilt').forEach(el=>{
   el.addEventListener('pointerleave',()=>{el.style.transform='';});
 });
 const steps=[
-  ['01 / GATEWAY','Confirms the customer payment was captured and identifies the settlement it belongs to.'],
-  ['02 / LEDGER','Accounts for the captured amount and recorded deductions to explain what is payable.'],
-  ['03 / BANK','Checks each payout attempt for a recorded credit or failure. Missing outcomes stay explicitly unknown.']
+  ['01 / GATEWAY','Confirms the payment and its settlement ID.'],
+  ['02 / LEDGER','Shows the fees and the amount payable.'],
+  ['03 / BANK','Checks bank credits and failed attempts. Missing outcomes stay unknown.']
 ];
 document.querySelectorAll('.source-node').forEach(button=>{
   button.setAttribute('aria-pressed',String(button.classList.contains('active')));
@@ -99,13 +99,6 @@ document.querySelector('.modal-close').addEventListener('click',closeModal);
 modal.addEventListener('click',event=>{if(event.target===modal){const box=modal.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)closeModal();}});
 // Pause ambient animations when the tab is not visible.
 document.addEventListener('visibilitychange',()=>{root.style.setProperty('--ambient-play',document.hidden?'paused':'running');});
-const motionButton=document.createElement('button');
-motionButton.className='motion-toggle';motionButton.textContent='Pause motion';motionButton.setAttribute('aria-pressed','false');
-document.querySelector('footer > div').append(motionButton);
-motionButton.addEventListener('click',()=>{
-  motionPaused=!motionPaused;root.classList.toggle('motion-paused',motionPaused);
-  motionButton.textContent=motionPaused?'Resume motion':'Pause motion';motionButton.setAttribute('aria-pressed',String(motionPaused));
-});
 const narrative=[
   ['01 / G-1042-01','The payment was captured.','The gateway confirms a ₹2,500 payment from the customer on 03 September 2026. Capture tells us the payment succeeded; it does not prove the merchant’s bank account was credited.'],
   ['02 / L-1042-01 + L-1042-02','The payable amount is ₹2,450.','The ledger records the ₹2,500 captured amount and a ₹50 fee deduction. Those entries explain the ₹2,450 expected settlement. These are synthetic demo amounts.'],
