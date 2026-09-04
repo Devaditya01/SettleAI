@@ -1,0 +1,15 @@
+# Local credentials and machine-specific files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
+Thumbs.db
+
+# Optional future tooling and temporary output
+node_modules/
+coverage/
+test-results/
+playwright-report/
+*.log
