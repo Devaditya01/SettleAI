@@ -7,6 +7,32 @@
 .DS_Store
 Thumbs.db
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ML model artifacts (re-generated via train_model.py)
+# Uncomment the line below if you want to track the trained model in git:
+# !models/delay_model.joblib
+
 # Optional future tooling and temporary output
 node_modules/
 coverage/
