@@ -1,1 +1,1 @@
-# src package
+"""SettleAI backend package."""

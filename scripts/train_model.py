@@ -52,6 +52,14 @@ DEFAULT_TEST_SIZE = 0.20
 DEFAULT_VALIDATION_SIZE = 0.20
 
 
+def repo_display_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(ROOT_DIR).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train the delay-risk XGBoost model.")
     parser.add_argument("--training-data", default=str(DEFAULT_TRAINING_PATH))
@@ -234,8 +242,8 @@ def train_model(
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "model_type": "XGBClassifier",
         "random_seed": RANDOM_SEED,
-        "training_data_path": str(training_data_path),
-        "model_output_path": str(model_output_path),
+        "training_data_path": repo_display_path(training_data_path),
+        "model_output_path": repo_display_path(model_output_path),
         "feature_columns": FEATURE_COLUMNS,
         "target_column": TARGET_COLUMN,
         "row_counts": {
