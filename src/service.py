@@ -1,5 +1,5 @@
 """
-Service Orchestration module for SettleAI (Phase 14).
+Service Orchestration module for Settlelens (Phase 14).
 
 Master integration module providing ``analyze_transaction()``.
 Unifies trace, journey, rules engine, exception handling, recommendations,
@@ -33,7 +33,7 @@ def analyze_transaction(
     data_dir: str = "data",
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Master orchestration function for SettleAI transaction analysis.
+    """Master orchestration function for Settlelens transaction analysis.
 
     Args:
         transaction_id: Transaction ID string to analyze.

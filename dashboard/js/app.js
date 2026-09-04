@@ -188,13 +188,33 @@ function renderSources(){
   const sources=[{key:'gateway',title:'Payment gateway',file:'gateway_logs.csv',icon:'card',description:'Captured payments, scheduled settlements, and payout initiation events.'},{key:'bank',title:'Bank settlements',file:'bank_settlements.csv',icon:'bank',description:'Recorded credit outcomes and failed payout attempts. Missing outcomes remain unknown.'},{key:'ledger',title:'Merchant ledger',file:'ledger_entries.csv',icon:'ledger',description:'Captured receivables, recorded fee deductions, and settlement postings.'}];
   $('#source-view').innerHTML=`<p class="source-intro">The same transaction IDs connect three independent views of a payment. Inspect or download the loaded records behind every answer.</p>${sources.map(s=>`<article class="card source-card"><div class="source-card-header"><span class="source-card-icon">${icon(s.icon)}</span><div><h2>${s.title}</h2><p>${s.file}</p></div><span class="source-pill">Loaded</span></div><p class="source-intro">${s.description}</p><div class="source-meta"><div><strong>${sourceRecords(s.key).length}</strong>source records</div><div><strong>${escapeHTML(timeLabel(AS_OF))}</strong>snapshot · IST</div><div><strong>${transactions.length}</strong>transactions</div></div><button class="button button-outline" data-download-source="${s.key}">${icon('download')}Download CSV</button></article>`).join('')}<p class="source-footnote">These records are compiled from the local gateway, bank, and ledger CSV files.</p>`;
 }
+function setSidebarActive(view){
+  $$('.nav-item').forEach(b=>{
+    b.classList.toggle('active',b.dataset.view===view);
+    if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+  });
+}
+let scrollNavPending=false;
+function updateOverviewScrollNav(){
+  scrollNavPending=false;
+  if(state.view!=='overview')return;
+  const transactionCard=$('#transaction-card');
+  if(!transactionCard||transactionCard.hidden)return;
+  const triggerLine=window.innerHeight*0.42;
+  setSidebarActive(transactionCard.getBoundingClientRect().top<=triggerLine?'transactions':'overview');
+}
+function scheduleOverviewScrollNav(){
+  if(scrollNavPending)return;
+  scrollNavPending=true;
+  requestAnimationFrame(updateOverviewScrollNav);
+}
 function setView(view){
   state.view=view;state.filter='all';state.search='';state.date='all';$('#transaction-search').value='';$('#date-filter').value='all';
   const info={overview:['Overview','Overview','A little less chasing. A lot more clarity.'],transactions:['Transactions','Transactions','Follow a payment from capture to bank credit.'],exceptions:['Exceptions','Exceptions','Failed attempts and records that need verification.'],sources:['Data sources','Data sources','Three sources. One connected view of your payments.']}[view];
   $('#breadcrumb-current').textContent=info[0];$('#page-title').textContent=info[1];$('#page-subtitle').textContent=info[2];
-  $$('.nav-item').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
+  setSidebarActive(view);
   $('#hero').hidden=view!=='overview';$('#flow-card').hidden=view!=='overview';$('#metrics').hidden=view==='sources';$('#transaction-card').hidden=view==='sources';$('#source-view').hidden=view!=='sources';$('.tabs').hidden=view==='exceptions';$('#table-title').textContent=view==='exceptions'?'Exception queue':'Transactions';
-  $('#export-button').hidden=view==='sources';renderTable();if(view==='sources')renderSources();
+  $('#export-button').hidden=view==='sources';renderTable();if(view==='sources')renderSources();updateOverviewScrollNav();
 }
 function appendFollowup(question,answer){
   const content=document.createElement('div');content.className='followup-response';content.innerHTML=`<div class="query-bubble">${escapeHTML(question)}</div><div class="response-label">${icon('sparkles')}Settle copilot<span>Local evidence</span></div>${answer}`;$('#followups').append(content);const body=$('#copilot-body');body.scrollTop=body.scrollHeight;
@@ -225,6 +245,9 @@ function exportReport(){
 }
 
 renderIcons();renderDateOptions();renderDatasetChrome();renderMetrics();renderTable();selectTransaction(state.selected);setView('overview');
+window.addEventListener('scroll',scheduleOverviewScrollNav,{passive:true});
+window.addEventListener('resize',scheduleOverviewScrollNav);
+updateOverviewScrollNav();
 document.addEventListener('click',e=>{
   const el=e.target.closest('button,a,tr[data-id]');if(!el)return;
   if(el.matches('.brand')){e.preventDefault();setView('overview');return;}
