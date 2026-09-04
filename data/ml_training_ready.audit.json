@@ -1,0 +1,42 @@
+{
+  "purpose": "Predict whether an in-progress successful payment will miss the settlement SLA, using only checkpoint-visible evidence.",
+  "feature_columns": [
+    "amount",
+    "payment_method",
+    "retry_count",
+    "gateway_hour",
+    "gateway_day_of_week",
+    "gateway_is_weekend",
+    "bank_observed_by_checkpoint",
+    "bank_name_at_checkpoint",
+    "bank_status_at_checkpoint",
+    "bank_response_code_at_checkpoint",
+    "bank_receive_lag_minutes",
+    "bank_update_observed_by_checkpoint",
+    "bank_age_minutes_at_checkpoint",
+    "settlement_amount_at_checkpoint",
+    "settlement_amount_delta_at_checkpoint"
+  ],
+  "target_column": "is_delayed",
+  "leakage_controls": [
+    "transaction_id excluded from default training output",
+    "demo transaction IDs excluded before feature building",
+    "final ledger timestamp used only to label is_delayed",
+    "rows already settled by checkpoint excluded from model population",
+    "raw future timestamps and post-hoc delay totals excluded from features"
+  ],
+  "summary": {
+    "checkpoint_minutes": 10,
+    "sla_minutes": 30,
+    "gateway_rows_read": 5500,
+    "demo_rows_excluded": 0,
+    "gateway_success_rows": 5174,
+    "rows_with_final_posted_ledger": 3996,
+    "rows_settled_before_or_at_checkpoint": 2025,
+    "rows_without_training_label": 1178,
+    "training_rows": 1971,
+    "delayed_rows": 354,
+    "not_delayed_rows": 1617,
+    "delayed_rate": 0.1796
+  }
+}

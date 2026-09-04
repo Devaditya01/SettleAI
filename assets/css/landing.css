@@ -182,3 +182,23 @@ footer { border-top: 1px solid var(--line); margin: 0 5%; padding: 34px 0; displ
   .closing { min-height: 430px; }.closing h2 { font-size: 40px; }.closing-ring { width: 260px; height: 260px; right: -130px; top: 120px; opacity: .2; }.closing-ring i { border-width: 17px; }.closing-ring i:nth-child(2) { inset: 28px; border-width: 7px; }.closing-ring i:nth-child(3) { inset: 55px; }.closing .primary { margin-top: 27px; }.closing .section-label { margin-bottom: 30px; }footer { padding: 28px 0; margin: 0 7%; gap: 24px; }footer .logo { font-size: 27px; }footer > div { order: 3; width: 100%; justify-content: space-between; gap: 16px; }footer > span { font-size: 8px; }footer > div a { font-size: 9px; }.story-modal { padding: 37px 25px; }.story-modal h2 { font-size: 28px; }.story-modal p { font-size: 12px; }.story-modal .section-label { font-size: 7px; gap: 8px; }
 }
 @media(prefers-reduced-motion:reduce) { :root { scroll-behavior: auto; } *,*:before,*:after { animation: none!important; transition: none!important; }.boot { display: none!important; }.reveal,.js-motion .reveal,.js-motion .split-lines > span { opacity: 1!important; transform: none!important; filter: none!important; }.hero-visual { transform: none!important; } }
+
+/* Keep the landing footer limited to its two legal items. */
+body:not(.legal-page)>footer:not(.minimal-footer) { display: none!important; }
+.minimal-footer {
+  min-height: 86px;
+  padding: 0;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+}
+.minimal-footer a,
+.minimal-footer span {
+  color: var(--muted);
+  font: 10px "Segoe UI", Arial, sans-serif;
+  letter-spacing: 0;
+}
+.minimal-footer a:hover { color: var(--fg); }
+@media(max-width:600px) {
+  .minimal-footer { min-height: 74px; padding: 0; margin: 0 7%; }
+  .minimal-footer a,.minimal-footer span { font-size: 9px; }
+}
