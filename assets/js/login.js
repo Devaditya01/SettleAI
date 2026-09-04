@@ -1,21 +1,16 @@
 (() => {
   'use strict';
 
-  // Guard: if config.js not loaded, bail with helpful error
-  if (!window.SETTLE_CONFIG?.SUPABASE_URL || window.SETTLE_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-    const err = document.getElementById('login-error');
-    if (err) {
-      err.textContent = 'App not configured: copy config.example.js → config.js and add your Supabase keys.';
-      err.classList.add('visible');
-    }
-    return;
-  }
+  const isDemoMode = !window.SETTLE_CONFIG?.SUPABASE_URL || window.SETTLE_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL';
 
-  const { createClient } = supabase;
-  const client = createClient(
-    window.SETTLE_CONFIG.SUPABASE_URL,
-    window.SETTLE_CONFIG.SUPABASE_ANON_KEY
-  );
+  let client = null;
+  if (!isDemoMode) {
+    const { createClient } = supabase;
+    client = createClient(
+      window.SETTLE_CONFIG.SUPABASE_URL,
+      window.SETTLE_CONFIG.SUPABASE_ANON_KEY
+    );
+  }
 
   const form   = document.getElementById('login-form');
   const btn    = document.getElementById('login-btn');
@@ -41,6 +36,13 @@
     clearError();
     setLoading(true);
 
+    if (isDemoMode) {
+      setTimeout(() => {
+        window.location.href = '/dashboard/index.html';
+      }, 600);
+      return;
+    }
+
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
@@ -52,21 +54,27 @@
       return;
     }
 
-    // Session is stored automatically by Supabase in localStorage
-    window.location.href = 'dashboard/index.html';
+    window.location.href = '/dashboard/index.html';
   });
 
-  // If already signed in, redirect straight to dashboard
-  client.auth.getSession().then(({ data: { session } }) => {
-    if (session) {
-      window.location.replace('dashboard/index.html');
-    }
-  });
+  // If already signed in, redirect straight to dashboard.
+  if (!isDemoMode) {
+    client.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        window.location.replace('/dashboard/index.html');
+      }
+    });
+  }
 
   const googleBtn = document.getElementById('google-btn');
   if (googleBtn) {
     googleBtn.addEventListener('click', async () => {
       clearError();
+      if (isDemoMode) {
+        window.location.href = '/dashboard/index.html';
+        return;
+      }
+
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {

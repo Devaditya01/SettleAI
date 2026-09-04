@@ -2,9 +2,10 @@
 // If no Supabase session is found, redirect immediately to login.
 
 (async () => {
-  // If config.js not loaded or not configured, redirect to login
-  if (!window.SETTLE_CONFIG?.SUPABASE_URL || window.SETTLE_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-    window.location.replace('../login.html');
+  const isDemoMode = !window.SETTLE_CONFIG?.SUPABASE_URL || window.SETTLE_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL';
+
+  if (isDemoMode) {
+    // In demo mode without keys, bypass auth guard entirely.
     return;
   }
 
@@ -17,6 +18,6 @@
   const { data: { session } } = await client.auth.getSession();
 
   if (!session) {
-    window.location.replace('../login.html');
+    window.location.replace('/login.html');
   }
 })();
