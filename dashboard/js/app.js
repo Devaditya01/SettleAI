@@ -1,6 +1,6 @@
 'use strict';
 
-// Entirely local demo: canonical evidence is loaded from data/demo-fixtures.js.
+// CSV-backed settlement records are loaded from data/real-data.js.
 const ICONS = {
   overview: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   transactions: '<path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/>',
@@ -35,26 +35,68 @@ const money = window.SettleEngine.money;
 const shortMoney = minor => minor >= 10000000 ? `₹${(minor/10000000).toFixed(1)}L` : minor >= 100000 ? `₹${(minor/100000).toFixed(1)}k` : money(minor);
 const dateLabel = date => new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Kolkata'}).format(new Date(date+'T12:00:00+05:30'));
 const timeLabel = date => new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'}).format(new Date(date));
-const DATASET = window.SettleDemoData;
-if (!DATASET || !window.SettleEngine) throw new Error('Settlement fixtures or reconciliation engine failed to load.');
+const DATASET = window.SettleRealData;
+if (!DATASET || !window.SettleEngine) throw new Error('Settlement data or reconciliation engine failed to load.');
 const MERCHANT = DATASET.merchant_id;
+const MERCHANT_NAME = DATASET.merchant_name || 'Imported Records';
 const AS_OF = DATASET.as_of;
 const STATUS_LABEL = {settled:'Settled',pending:'Pending',failed:'Failed',review:'Needs review'};
+const sourceTypes = ['gateway','bank','ledger'];
+const sourceIndex = Object.fromEntries(sourceTypes.map(type=>[type,new Map()]));
+for (const type of sourceTypes) {
+  for (const row of DATASET.sources[type] || []) {
+    const bucket = sourceIndex[type].get(row.transaction_id) || [];
+    bucket.push(row);
+    sourceIndex[type].set(row.transaction_id,bucket);
+  }
+}
+const recordsFor = (type,id) => sourceIndex[type].get(id) || [];
 const transactions = DATASET.transactions.map(meta=>({
   ...meta,
   id:meta.transaction_id,
   settlementId:meta.settlement_id,
   amount:meta.captured_minor,
   date:meta.payment_date,
-  gateway:DATASET.sources.gateway.filter(row=>row.transaction_id===meta.transaction_id),
-  bank:DATASET.sources.bank.filter(row=>row.transaction_id===meta.transaction_id),
-  ledger:DATASET.sources.ledger.filter(row=>row.transaction_id===meta.transaction_id)
+  gateway:recordsFor('gateway',meta.transaction_id),
+  bank:recordsFor('bank',meta.transaction_id),
+  ledger:recordsFor('ledger',meta.transaction_id)
 }));
-const state = {view:'overview',filter:'all',search:'',date:'all',selected:'TXN-1042'};
+const state = {view:'overview',filter:'all',search:'',date:'all',selected: transactions.length > 0 ? transactions[0].id : null};
 const sourceRecords = type => DATASET.sources[type] || [];
 const statusBadge = status => {const safe=Object.hasOwn(STATUS_LABEL,status)?status:'review';return `<span class="status ${safe}">${STATUS_LABEL[safe]}</span>`;};
 const reconcile = transaction => window.SettleEngine.reconcile(transaction,{asOf:AS_OF});
 const getSelected = () => transactions.find(t=>t.id===state.selected);
+const compactId = value => String(value).toUpperCase().replace(/[\s-]/g,'');
+const normalizeTransactionId = value => transactions.find(t=>compactId(t.id)===compactId(value))?.id || String(value).toUpperCase();
+function initials(value){
+  const parts=String(value||'').replace(/@.*/,'').split(/[\s._-]+/).filter(Boolean);
+  if(parts.length>=2)return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
+  return (parts[0] || 'U').slice(0,2).toUpperCase();
+}
+function dateRangeText(){
+  const days=[...new Set(transactions.map(t=>t.date).filter(Boolean))].sort();
+  if(!days.length)return 'No dated records';
+  const start=dateLabel(days[0]).replace(/ 2026$/,'');
+  const end=dateLabel(days.at(-1)).replace(/ 2026$/,'');
+  return start===end?start:`${start} - ${end}`;
+}
+function renderDateOptions(){
+  const select=$('#date-filter');
+  const days=[...new Set(transactions.map(t=>t.date).filter(Boolean))].sort().reverse();
+  select.innerHTML='<option value="all">All dates</option>'+days.map(day=>`<option value="${escapeHTML(day)}">${escapeHTML(dateLabel(day))}</option>`).join('');
+}
+function renderDatasetChrome(){
+  $('#workspace-name').textContent=MERCHANT_NAME;
+  $('#workspace-logo').textContent=initials(MERCHANT_NAME);
+  $('#date-range-label').textContent=dateRangeText();
+  const sample=transactions.find(t=>reconcile(t).has_bank_credit) || transactions[0];
+  if(!sample)return;
+  const result=reconcile(sample);
+  $('#hero-gateway-amount').textContent=money(result.captured_minor);
+  $('#hero-gateway-meta').textContent=`${sample.id} · fee ${money(result.fees_minor)}`;
+  $('#hero-bank-amount').textContent=result.has_bank_credit?money(result.credited_minor):'Not confirmed';
+  $('#hero-bank-meta').innerHTML=`<i>${result.has_bank_credit?'✓':'?'}</i>${escapeHTML(result.title)}`;
+}
 function renderIcons(root=document){root.querySelectorAll('[data-icon]').forEach(el=>{el.innerHTML=icon(el.dataset.icon);});}
 function filteredRows(){
   return transactions.filter(t=>{
@@ -89,7 +131,7 @@ function renderTable(){
   const rows=filteredRows();
   $('#transaction-count').textContent=rows.length;
   $('#transaction-rows').innerHTML=rows.length?rows.map(t=>`<tr data-id="${escapeHTML(t.id)}" class="${state.selected===t.id?'selected':''}"><td><button class="transaction-id" aria-label="Investigate ${escapeHTML(t.id)}">${escapeHTML(t.id)}</button><span class="customer-name">${escapeHTML(t.customer)}</span></td><td class="amount-cell">${money(t.amount)}</td><td>${statusBadge(reconcile(t).status)}</td><td class="date-cell">${dateLabel(t.date)}</td><td>${icon('chevron')}</td></tr>`).join(''):`<tr><td class="empty-state" colspan="5"><strong>No matching transactions</strong><p>Try another ID, customer, date, or status.</p><button class="button button-outline" id="reset-filters">Clear filters</button></td></tr>`;
-  $('#table-summary').textContent=`Showing ${rows.length} of ${transactions.length} demo transactions`;
+  $('#table-summary').textContent=`Showing ${rows.length} of ${transactions.length} loaded transactions`;
   $$('.tab').forEach(b=>{b.classList.toggle('active',b.dataset.filter===state.filter);b.setAttribute('aria-pressed',String(b.dataset.filter===state.filter));});
 }
 function timeline(t){
@@ -115,7 +157,7 @@ function selectTransaction(id,question,scroll=false){
   const t=transactions.find(t=>t.id===id);if(!t)return;
   state.selected=id;const r=reconcile(t);
   const defaultQuestion=r.status==='settled'?`Has ${id} settled successfully?`:r.status==='pending'?`When will ${id} settle?`:r.status==='failed'?`Why hasn’t ${id} settled?`:`What happened to ${id}?`;
-  $('#investigation-content').innerHTML=`<div class="query-bubble">${escapeHTML(question||defaultQuestion)}<small>Northstar Store · ${escapeHTML(id)}</small></div><div class="response-label">${icon('sparkles')}Settle copilot<span>Verified rules</span></div>${statusBadge(r.status)}<div class="finding-meta"><span>${escapeHTML(r.reason_code)}</span><span>${escapeHTML(r.certainty)}</span></div><h3 class="answer-title">${escapeHTML(r.title)}</h3><p class="answer-description">${escapeHTML(r.explanation)}</p><div class="evidence-chips">${evidenceChips(t)}</div><div class="mini-timeline">${renderTimeline(t)}</div><div class="exception-box ${r.exception?'':'no-exception'}"><div class="exception-box-title">${icon(r.exception?'alert':'shield')}${r.exception?'What we can’t confirm':'The records agree'}</div><p>${escapeHTML(r.exception||'No exceptions detected in the loaded gateway, bank, and ledger records.')}</p></div><p class="next-step"><strong>Next step</strong><br>${escapeHTML(r.next)}</p><button class="trace-button" data-trace="${escapeHTML(t.id)}">View full investigation ${icon('arrow-up-right')}</button><div id="followups"></div>`;
+  $('#investigation-content').innerHTML=`<div class="query-bubble">${escapeHTML(question||defaultQuestion)}<small>${escapeHTML(MERCHANT_NAME)} · ${escapeHTML(id)}</small></div><div class="response-label">${icon('sparkles')}Settle copilot<span>Verified rules</span></div>${statusBadge(r.status)}<div class="finding-meta"><span>${escapeHTML(r.reason_code)}</span><span>${escapeHTML(r.certainty)}</span></div><h3 class="answer-title">${escapeHTML(r.title)}</h3><p class="answer-description">${escapeHTML(r.explanation)}</p><div class="evidence-chips">${evidenceChips(t)}</div><div class="mini-timeline">${renderTimeline(t)}</div><div class="exception-box ${r.exception?'':'no-exception'}"><div class="exception-box-title">${icon(r.exception?'alert':'shield')}${r.exception?'What we can’t confirm':'The records agree'}</div><p>${escapeHTML(r.exception||'No exceptions detected in the loaded gateway, bank, and ledger records.')}</p></div><p class="next-step"><strong>Next step</strong><br>${escapeHTML(r.next)}</p><button class="trace-button" data-trace="${escapeHTML(t.id)}">View full investigation ${icon('arrow-up-right')}</button><div id="followups"></div>`;
   renderTable();
   $('#copilot-body').scrollTop=0;
   if(scroll&&window.innerWidth<=850)$('.copilot').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
@@ -132,18 +174,19 @@ function breakdownHTML(t){
 }
 function showTrace(id){
   const t=transactions.find(t=>t.id===id),r=reconcile(t);
-  openDialog(`${t.id} · Full investigation`,`<div class="detail-summary"><p>${escapeHTML(t.customer)} · Northstar Store<br>Snapshot: ${escapeHTML(timeLabel(AS_OF))} IST</p>${statusBadge(r.status)}</div><div class="finding-meta"><span>${escapeHTML(r.reason_code)}</span><span>${escapeHTML(r.certainty)}</span></div><h3 class="answer-title">${escapeHTML(r.title)}</h3><p class="detail-description">${escapeHTML(r.explanation)}</p><div class="detail-grid"><div><h3 class="detail-heading">The complete timeline</h3><div class="detail-timeline">${renderTimeline(t,true)}</div></div><div><h3 class="detail-heading">Follow the money</h3>${breakdownHTML(t)}<p class="guide-notice">The demo records one fee deduction per payment. These synthetic amounts do not represent a provider’s fee or tax policy.</p></div></div><div class="exception-box ${r.exception?'':'no-exception'}"><div class="exception-box-title">${icon(r.exception?'alert':'check')}${r.exception?'Open exception':'No exceptions detected'}</div><p>${escapeHTML(r.exception||'All loaded records reconcile for this transaction.')}</p></div><p class="next-step"><strong>Recommended next step</strong><br>${escapeHTML(r.next)}</p><h3 class="detail-heading">Inspect the evidence</h3><div class="evidence-list">${evidenceChips(t)}</div><button class="button button-outline" style="margin-top:20px" data-export-case="${escapeHTML(id)}">${icon('download')}Export investigation JSON</button>`);
+  openDialog(`${t.id} · Full investigation`,`<div class="detail-summary"><p>${escapeHTML(t.customer)} · ${escapeHTML(MERCHANT_NAME)}<br>Snapshot: ${escapeHTML(timeLabel(AS_OF))} IST</p>${statusBadge(r.status)}</div><div class="finding-meta"><span>${escapeHTML(r.reason_code)}</span><span>${escapeHTML(r.certainty)}</span></div><h3 class="answer-title">${escapeHTML(r.title)}</h3><p class="detail-description">${escapeHTML(r.explanation)}</p><div class="detail-grid"><div><h3 class="detail-heading">The complete timeline</h3><div class="detail-timeline">${renderTimeline(t,true)}</div></div><div><h3 class="detail-heading">Follow the money</h3>${breakdownHTML(t)}<p class="guide-notice">The payable amount is calculated from the loaded records for this transaction.</p></div></div><div class="exception-box ${r.exception?'':'no-exception'}"><div class="exception-box-title">${icon(r.exception?'alert':'check')}${r.exception?'Open exception':'No exceptions detected'}</div><p>${escapeHTML(r.exception||'All loaded records reconcile for this transaction.')}</p></div><p class="next-step"><strong>Recommended next step</strong><br>${escapeHTML(r.next)}</p><h3 class="detail-heading">Inspect the evidence</h3><div class="evidence-list">${evidenceChips(t)}</div><button class="button button-outline" style="margin-top:20px" data-export-case="${escapeHTML(id)}">${icon('download')}Export investigation JSON</button>`);
 }
 function showEvidence(type,id){
   const t=transactions.find(t=>t.id===id),records=t[type];
-  openDialog(`${type[0].toUpperCase()+type.slice(1)} evidence · ${id}`,`<p class="detail-description">${records.length?`${records.length} synthetic record${records.length===1?'':'s'} from this transaction.`:'No matching bank records are available. Absence of a record does not establish payment failure.'} All timestamps include the +05:30 timezone offset.</p><pre class="record-json">${escapeHTML(JSON.stringify(records.length?records:{transaction_id:id,source:type,records:[],finding:'Bank outcome unknown',source_snapshot:AS_OF},null,2))}</pre><button class="button button-outline" data-trace="${id}">${icon('arrow-right')}Back to full investigation</button>`,'SOURCE EVIDENCE');
+  openDialog(`${type[0].toUpperCase()+type.slice(1)} evidence · ${id}`,`<p class="detail-description">${records.length?`${records.length} loaded record${records.length===1?'':'s'} from this transaction.`:'No matching bank records are available. Absence of a record does not establish payment failure.'} All timestamps include the +05:30 timezone offset.</p><pre class="record-json">${escapeHTML(JSON.stringify(records.length?records:{transaction_id:id,source:type,records:[],finding:'Bank outcome unknown',source_snapshot:AS_OF},null,2))}</pre><button class="button button-outline" data-trace="${id}">${icon('arrow-right')}Back to full investigation</button>`,'SOURCE EVIDENCE');
 }
 function showGuide(){
-  openDialog('Meet your settlement copilot.',`<p class="guide-intro">One place to answer the question that keeps coming back: <strong>“Where is my settlement?”</strong></p><div class="guide-step"><span class="guide-number">1</span><div><strong>Find a payment</strong><p>Search an ID or customer, filter by payment date, or open the exceptions queue.</p></div></div><div class="guide-step"><span class="guide-number">2</span><div><strong>Connect the evidence</strong><p>Select a transaction to inspect its gateway, bank, and ledger records. Open the full investigation to see every retry.</p></div></div><div class="guide-step"><span class="guide-number">3</span><div><strong>Know what’s known</strong><p>Read the confirmed outcome, inspect any uncertainty, and export a case summary for support.</p></div></div><div class="guide-scenarios"><button data-demo-case="TXN-1042">Bank rejection ↗</button><button data-demo-case="TXN-1041">Successful retry ↗</button><button data-demo-case="TXN-1046">Missing evidence ↗</button><button data-demo-case="TXN-1050">Amount mismatch ↗</button></div><p class="guide-notice"><strong>Prototype scope:</strong> 12 synthetic transactions, one demo merchant, and a fixed snapshot of 04 Sep 2026. Responses use local rules and templates. Login, merchant authorization, live integrations, database access, and an LLM are not implemented. The illustrated analyst identity is not an authenticated account.</p>`,'A QUICK TOUR');
+  const examples=transactions.slice(0,4).map(t=>`<button data-demo-case="${escapeHTML(t.id)}">${escapeHTML(t.id)} ↗</button>`).join('');
+  openDialog('Meet your settlement copilot.',`<p class="guide-intro">One place to answer the question that keeps coming back: <strong>“Where is my settlement?”</strong></p><div class="guide-step"><span class="guide-number">1</span><div><strong>Find a payment</strong><p>Search a real transaction ID, filter by payment date, or open the exceptions queue.</p></div></div><div class="guide-step"><span class="guide-number">2</span><div><strong>Connect the evidence</strong><p>Select a transaction to inspect its gateway, bank, and ledger records.</p></div></div><div class="guide-step"><span class="guide-number">3</span><div><strong>Know what’s known</strong><p>Read the confirmed outcome, inspect any uncertainty, and export a case summary for support.</p></div></div><div class="guide-scenarios">${examples}</div><p class="guide-notice"><strong>Loaded scope:</strong> ${transactions.length} transactions across ${sourceTypes.length} source systems. Responses use deterministic reconciliation rules over the loaded records.</p>`,'A QUICK TOUR');
 }
 function renderSources(){
   const sources=[{key:'gateway',title:'Payment gateway',file:'gateway_logs.csv',icon:'card',description:'Captured payments, scheduled settlements, and payout initiation events.'},{key:'bank',title:'Bank settlements',file:'bank_settlements.csv',icon:'bank',description:'Recorded credit outcomes and failed payout attempts. Missing outcomes remain unknown.'},{key:'ledger',title:'Merchant ledger',file:'ledger_entries.csv',icon:'ledger',description:'Captured receivables, recorded fee deductions, and settlement postings.'}];
-  $('#source-view').innerHTML=`<p class="source-intro">The same transaction IDs connect three independent views of a payment. Inspect or download the synthetic records behind every answer.</p>${sources.map(s=>`<article class="card source-card"><div class="source-card-header"><span class="source-card-icon">${icon(s.icon)}</span><div><h2>${s.title}</h2><p>${s.file}</p></div><span class="source-pill">Fixture loaded</span></div><p class="source-intro">${s.description}</p><div class="source-meta"><div><strong>${sourceRecords(s.key).length}</strong>source records</div><div><strong>04 Sep, 18:00</strong>snapshot · IST</div><div><strong>1 merchant</strong>Northstar Store</div></div><button class="button button-outline" data-download-source="${s.key}">${icon('download')}Download mock CSV</button></article>`).join('')}<p class="source-footnote">These fixtures intentionally include one missing bank outcome and one unexplained amount mismatch. No real bank, gateway, or merchant account is connected.</p>`;
+  $('#source-view').innerHTML=`<p class="source-intro">The same transaction IDs connect three independent views of a payment. Inspect or download the loaded records behind every answer.</p>${sources.map(s=>`<article class="card source-card"><div class="source-card-header"><span class="source-card-icon">${icon(s.icon)}</span><div><h2>${s.title}</h2><p>${s.file}</p></div><span class="source-pill">Loaded</span></div><p class="source-intro">${s.description}</p><div class="source-meta"><div><strong>${sourceRecords(s.key).length}</strong>source records</div><div><strong>${escapeHTML(timeLabel(AS_OF))}</strong>snapshot · IST</div><div><strong>${transactions.length}</strong>transactions</div></div><button class="button button-outline" data-download-source="${s.key}">${icon('download')}Download CSV</button></article>`).join('')}<p class="source-footnote">These records are compiled from the local gateway, bank, and ledger CSV files.</p>`;
 }
 function setView(view){
   state.view=view;state.filter='all';state.search='';state.date='all';$('#transaction-search').value='';$('#date-filter').value='all';
@@ -159,9 +202,9 @@ function appendFollowup(question,answer){
 function ask(question){
   question=question.trim().slice(0,600);if(!question)return;
   const matches=question.match(/\bTXN[-\s]?\d+\b/gi)||[];
-  const ids=[...new Set(matches.map(x=>x.toUpperCase().replace(/^TXN[-\s]?/,'TXN-')))];
-  if(ids.length>1){appendFollowup(question,'<p>This demo investigates one transaction at a time. Select one transaction ID, or use the transaction list to compare statuses.</p>');return;}
-  if(ids.length&&!transactions.some(t=>t.id===ids[0])){appendFollowup(question,`<p>No matching record for <strong>${escapeHTML(ids[0])}</strong> in Northstar Store’s 12 demo transactions. This does not establish whether the transaction exists elsewhere.</p>`);return;}
+  const ids=[...new Set(matches.map(normalizeTransactionId))];
+  if(ids.length>1){appendFollowup(question,'<p>This workspace investigates one transaction at a time. Select one transaction ID, or use the transaction list to compare statuses.</p>');return;}
+  if(ids.length&&!transactions.some(t=>t.id===ids[0])){appendFollowup(question,`<p>No matching record for <strong>${escapeHTML(ids[0])}</strong> in ${escapeHTML(MERCHANT_NAME)} records. This does not establish whether the transaction exists elsewhere.</p>`);return;}
   const t=ids.length?transactions.find(t=>t.id===ids[0]):getSelected();
   if(ids.length&&t.id!==state.selected)selectTransaction(t.id,question);
   const r=reconcile(t), q=question.toLowerCase();
@@ -169,7 +212,7 @@ function ask(question){
   else if(/next|should|action|retry|fix/.test(q))appendFollowup(question,`<p>${escapeHTML(r.next)}</p><p>${escapeHTML(r.exception||'No open exception was detected in the loaded records.')}</p>`);
   else if(/missing|exception|uncertain|sure|confiden/.test(q))appendFollowup(question,`<p><strong>${escapeHTML(r.certainty)}.</strong> ${escapeHTML(r.exception||'The credited amount, expected payable, and ledger posting agree in the loaded records.')}</p><div class="evidence-chips">${evidenceChips(t)}</div>`);
   else if(ids.length||/status|why|settle|credit|payout|trace|happened/.test(q))selectTransaction(t.id,question);
-  else appendFollowup(question,`<p>This local demo can explain the status, amount breakdown, next step, and missing evidence for <strong>${t.id}</strong>. Try “What’s the status?” or enter another demo transaction ID.</p>`);
+  else appendFollowup(question,`<p>This workspace can explain the status, amount breakdown, next step, and missing evidence for <strong>${t.id}</strong>. Try “What’s the status?” or enter another transaction ID.</p>`);
   if(window.innerWidth<=850)$('.copilot').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function notify(message){const toast=$('#toast');toast.textContent=message;toast.classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>toast.classList.remove('show'),3500);}
@@ -181,7 +224,7 @@ function exportReport(){
   download('settle-report.csv',csv(rows),'text/csv;charset=utf-8');
 }
 
-renderIcons();renderMetrics();renderTable();selectTransaction(state.selected);setView('overview');
+renderIcons();renderDateOptions();renderDatasetChrome();renderMetrics();renderTable();selectTransaction(state.selected);setView('overview');
 document.addEventListener('click',e=>{
   const el=e.target.closest('button,a,tr[data-id]');if(!el)return;
   if(el.matches('.brand')){e.preventDefault();setView('overview');return;}
@@ -192,7 +235,7 @@ document.addEventListener('click',e=>{
   if(el.dataset.demoCase){closeDialog();setView('transactions');selectTransaction(el.dataset.demoCase,null,true);return;}
   if(el.dataset.question){ask(el.dataset.question==='breakdown'?'Show the amount breakdown.':'What should I do next?');return;}
   if(el.dataset.downloadSource){const key=el.dataset.downloadSource;download({gateway:'gateway_logs.csv',bank:'bank_settlements.csv',ledger:'ledger_entries.csv'}[key],csv(sourceRecords(key)),'text/csv;charset=utf-8');return;}
-  if(el.dataset.exportCase){const t=transactions.find(t=>t.id===el.dataset.exportCase);download(`${t.id}-investigation.json`,JSON.stringify({demo:true,rule_version:'demo-1.0',...reconcile(t),evidence:{gateway:t.gateway,bank:t.bank,ledger:t.ledger}},null,2),'application/json');return;}
+  if(el.dataset.exportCase){const t=transactions.find(t=>t.id===el.dataset.exportCase);download(`${t.id}-investigation.json`,JSON.stringify({rule_version:'csv-rules-1.0',...reconcile(t),evidence:{gateway:t.gateway,bank:t.bank,ledger:t.ledger}},null,2),'application/json');return;}
   if(el.id==='reset-filters'){state.filter='all';state.search='';state.date='all';$('#transaction-search').value='';$('#date-filter').value='all';renderTable();return;}
   const row=el.closest('tr[data-id]');if(row)selectTransaction(row.dataset.id,null,true);
 });
@@ -205,4 +248,41 @@ $('#dialog-close').addEventListener('click',closeDialog);
 dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();}});
 $('#guide-button').addEventListener('click',showGuide);$('#help-button').addEventListener('click',showGuide);
 $('#export-button').addEventListener('click',exportReport);
-$('#hero-investigate').addEventListener('click',()=>{selectTransaction('TXN-1042',null,true);$('#chat-input').focus({preventScroll:true});notify('Try TXN-1041 for a successful retry, or TXN-1046 for missing evidence.');});
+$('#hero-investigate').addEventListener('click',()=>{selectTransaction(transactions[0].id,null,true);$('#chat-input').focus({preventScroll:true});});
+
+// --- Supabase User Profile Sync ---
+(async () => {
+  const isDemoMode = !window.SETTLE_CONFIG?.SUPABASE_URL || window.SETTLE_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL';
+  
+  const logoutBtn = $('#logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      if (!isDemoMode && window.supabase) {
+        const client = window.supabase.createClient(window.SETTLE_CONFIG.SUPABASE_URL, window.SETTLE_CONFIG.SUPABASE_ANON_KEY);
+        await client.auth.signOut();
+      }
+      window.location.replace('/login.html');
+    });
+  }
+
+  if (isDemoMode || !window.supabase) return;
+
+  const client = window.supabase.createClient(
+    window.SETTLE_CONFIG.SUPABASE_URL,
+    window.SETTLE_CONFIG.SUPABASE_ANON_KEY
+  );
+
+  const { data: { session } } = await client.auth.getSession();
+  if (session && session.user) {
+    const user = session.user;
+    const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'Signed in user';
+    const roleLabel = user.email || 'Authenticated account';
+    const nameEl = $('#user-name');
+    const roleEl = $('#user-role');
+    const avatarEl = $('#user-avatar');
+
+    if (nameEl) nameEl.textContent = displayName;
+    if (roleEl) roleEl.textContent = roleLabel;
+    if (avatarEl) avatarEl.textContent = initials(displayName);
+  }
+})();

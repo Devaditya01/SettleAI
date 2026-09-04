@@ -8,11 +8,11 @@ SettleAI uses an `XGBClassifier` to estimate whether an in-progress, otherwise s
 | --- | --- |
 | Model artifact | `models/delay_model.joblib` |
 | Model type | `XGBClassifier` |
-| Model created | `2026-09-04T21:10:35.725784+00:00` |
+| Model created | `2026-09-04T23:14:08.632116+00:00` |
 | Prediction checkpoint | 10 minutes after gateway initiation |
 | Settlement SLA | 30 minutes |
 | Random seed | 42 |
-| Decision threshold | 0.2393, selected on validation data using F2 |
+| Decision threshold | 0.1796, selected on validation data using F2 |
 
 ## Intended use
 
@@ -75,18 +75,18 @@ Transaction IDs, final ledger timestamps, raw future timestamps, and post-hoc de
 
 The threshold was selected on the validation split using F2, which weights recall more heavily than precision. The following figures are from the untouched 395-row test split.
 
-| Metric | Test result at threshold 0.2393 |
+| Metric | Test result at threshold 0.1796 |
 | --- | ---: |
-| Accuracy | 72.91% |
-| Precision for delayed class | 38.61% |
-| Recall for delayed class | 85.92% |
-| F1 for delayed class | 53.28% |
-| ROC AUC | 90.58% |
-| PR AUC | 78.24% |
-| True negatives / false positives | 227 / 97 |
-| False negatives / true positives | 10 / 61 |
+| Accuracy | 68.86% |
+| Precision for delayed class | 35.23% |
+| Recall for delayed class | 87.32% |
+| F1 for delayed class | 50.20% |
+| ROC AUC | 90.56% |
+| PR AUC | 78.04% |
+| True negatives / false positives | 210 / 114 |
+| False negatives / true positives | 9 / 62 |
 
-The selected operating point catches most delayed transactions but produces many false alerts. Support teams should treat a high-risk result as a prioritization signal, not proof of a delay. At the default 0.5 threshold, delayed precision was 56.04%, recall was 71.83%, and accuracy was 84.81%.
+The selected operating point catches most delayed transactions but produces many false alerts. Support teams should treat a high-risk result as a prioritization signal, not proof of a delay. At the default 0.5 threshold, delayed precision was 56.82%, recall was 70.42%, and accuracy was 85.06%.
 
 ## Leakage controls
 
@@ -134,11 +134,11 @@ The saved metrics record the following training environment:
 
 | Dependency | Recorded version |
 | --- | --- |
-| Python | 3.14.5 |
-| pandas | 3.0.5 |
-| NumPy | 2.5.2 |
-| scikit-learn | 1.9.0 |
-| XGBoost | 3.4.1 |
+| Python | 3.10.7 |
+| pandas | 2.1.4 |
+| NumPy | 1.26.3 |
+| scikit-learn | 1.3.2 |
+| XGBoost | 2.0.3 |
 
 The core model-library pins in `requirements.txt` match the versions recorded during training. A clean environment should still run the artifact and prediction tests before deployment because operating-system libraries and unrecorded transitive dependencies can differ. Byte-for-byte retraining is not claimed.
 
@@ -158,8 +158,8 @@ Current artifact provenance:
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `models/delay_model.joblib` | `7752368423352C2F270248103EACF899B7E21797CD720CABF5157CA7C179393D` |
-| `models/delay_model.metrics.json` | `C51325279B6D086C687EA726A3A4B8DCCFFE919EAA510B1760C7CDF29C337EE5` |
+| `models/delay_model.joblib` | `BF47067BA34A8FA1419FCEB5A8404259D124E6A9483D4419D1AE9E99DBA2B926` |
+| `models/delay_model.metrics.json` | `3884599CCCADB2FBD30F67CF1295971C4F8A65491F6C645541854AE07EDF9189` |
 | `data/ml_training_ready.csv` | `D27D783F144274D1A8B0837891D2B261267B6A3907A838EC537680D86AAA2852` |
 | `data/ml_training_ready.audit.json` | `51810F94ABDA7CB50ADF7DEABE042F4A7F5BCFF5812C1D62C355B51FD1299E90` |
 

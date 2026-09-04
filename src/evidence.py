@@ -7,7 +7,12 @@ boundary. Raw gateway, bank, ledger, CSV, webhook, or log content is excluded.
 
 from __future__ import annotations
 
-from typing import Any, Self
+from typing import Any
+
+try:
+    from typing import Self
+except ImportError:
+    from typing_extensions import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
