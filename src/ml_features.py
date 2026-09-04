@@ -17,6 +17,7 @@ from config import (
     SETTLEMENT_SLA_MINUTES,
 )
 from src.loader import load_data
+from src.validator import validate_transaction_id
 
 
 FEATURE_COLUMNS = [
@@ -98,6 +99,155 @@ def load_feature_sources(
     return gateway, bank, ledger
 
 
+def _transaction_row(
+    frame: pd.DataFrame,
+    transaction_id: str,
+    sort_columns: list[str],
+) -> pd.Series | None:
+    """Return the latest source row using the same ordering as training."""
+    columns = _as_columns(frame)
+    matches = columns.loc[columns["transaction_id"].eq(transaction_id)]
+    if matches.empty:
+        return None
+    return _latest_record(matches, sort_columns).iloc[0]
+
+
+def _timestamp_or_none(value: object) -> pd.Timestamp | None:
+    if value is None or pd.isna(value):
+        return None
+    timestamp = pd.Timestamp(value)
+    return None if pd.isna(timestamp) else timestamp
+
+
+def _native_or_none(value: object) -> object | None:
+    """Convert pandas missing/scalar values into predictor-safe Python values."""
+    if value is None or pd.isna(value):
+        return None
+    try:
+        return value.item()  # NumPy scalar
+    except (AttributeError, ValueError):
+        return value
+
+
+def extract_features(
+    transaction_id: str,
+    data: dict[str, pd.DataFrame] | None = None,
+    data_dir: str = DATA_DIR,
+    checkpoint_minutes: int = PREDICTION_CHECKPOINT_MINUTES,
+) -> dict[str, object | None]:
+    """Build one checkpoint-safe inference row for ``predict_delay_risk``.
+
+    Only evidence visible at ``gateway_timestamp + checkpoint_minutes`` is
+    used. Ledger fields are deliberately excluded because final settlement is
+    future information at prediction time.
+    """
+    clean_id = validate_transaction_id(transaction_id)
+    if checkpoint_minutes <= 0:
+        raise ValueError("checkpoint_minutes must be greater than zero")
+
+    if data is None:
+        data = load_data(data_dir)
+    required_sources = {"gateway", "bank", "ledger"}
+    missing_sources = required_sources - set(data)
+    if missing_sources:
+        raise ValueError(f"Missing feature data sources: {sorted(missing_sources)}")
+
+    gateway = _transaction_row(
+        data["gateway"], clean_id, ["gateway_timestamp"]
+    )
+    if gateway is None:
+        raise ValueError(f"Gateway record not found for transaction '{clean_id}'.")
+
+    gateway_timestamp = _timestamp_or_none(gateway.get("gateway_timestamp"))
+    if gateway_timestamp is None:
+        raise ValueError("gateway_timestamp is required for ML feature extraction")
+    if str(gateway.get("gateway_status", "")).upper() != "SUCCESS":
+        raise ValueError("ML feature extraction requires a successful gateway payment")
+
+    checkpoint_at = gateway_timestamp + pd.to_timedelta(checkpoint_minutes, unit="m")
+    bank = _transaction_row(
+        data["bank"], clean_id, ["bank_received_at", "bank_updated_at"]
+    )
+
+    bank_received_at = None
+    bank_updated_at = None
+    bank_observed = False
+    bank_update_observed = False
+    bank_not_found_observed = False
+
+    if bank is not None:
+        bank_received_at = _timestamp_or_none(bank.get("bank_received_at"))
+        bank_updated_at = _timestamp_or_none(bank.get("bank_updated_at"))
+        bank_observed = (
+            bank_received_at is not None and bank_received_at <= checkpoint_at
+        )
+        bank_update_observed = (
+            bank_observed
+            and bank_updated_at is not None
+            and bank_updated_at <= checkpoint_at
+        )
+        bank_not_found_observed = (
+            bank_observed
+            and str(bank.get("bank_status", "")).upper() == "NOT_FOUND"
+            and bank_updated_at is None
+        )
+
+    bank_name: object = "UNKNOWN"
+    bank_status: object = "NOT_OBSERVED"
+    bank_response_code: object = "NOT_OBSERVED"
+    bank_receive_lag: float | None = None
+    bank_age: float | None = None
+    settlement_amount: object | None = None
+    settlement_amount_delta: float | None = None
+
+    if bank_observed and bank is not None and bank_received_at is not None:
+        bank_name = _native_or_none(bank.get("bank_name")) or "UNKNOWN"
+        bank_status = "PROCESSING"
+        bank_response_code = "PENDING"
+        bank_receive_lag = (
+            bank_received_at - gateway_timestamp
+        ).total_seconds() / 60.0
+
+        observed_until = bank_updated_at if bank_update_observed else checkpoint_at
+        bank_age = (observed_until - bank_received_at).total_seconds() / 60.0
+        settlement_amount = _native_or_none(bank.get("settlement_amount"))
+
+        gateway_amount = _native_or_none(gateway.get("amount"))
+        if settlement_amount is not None and gateway_amount is not None:
+            settlement_amount_delta = float(settlement_amount) - float(gateway_amount)
+
+        if bank_update_observed or bank_not_found_observed:
+            bank_status = str(bank.get("bank_status") or "UNKNOWN").upper()
+            bank_response_code = _native_or_none(bank.get("bank_response_code"))
+            if bank_response_code is None:
+                bank_response_code = "UNKNOWN"
+
+    gateway_hour = int(gateway_timestamp.hour)
+    gateway_day_of_week = int(gateway_timestamp.dayofweek)
+    features: dict[str, object | None] = {
+        "amount": _native_or_none(gateway.get("amount")),
+        "payment_method": _native_or_none(gateway.get("payment_method")),
+        "retry_count": _native_or_none(gateway.get("retry_count")),
+        "gateway_hour": gateway_hour,
+        "gateway_day_of_week": gateway_day_of_week,
+        "gateway_is_weekend": int(gateway_day_of_week in {5, 6}),
+        "bank_observed_by_checkpoint": int(bank_observed),
+        "bank_name_at_checkpoint": bank_name,
+        "bank_status_at_checkpoint": bank_status,
+        "bank_response_code_at_checkpoint": bank_response_code,
+        "bank_receive_lag_minutes": bank_receive_lag,
+        "bank_update_observed_by_checkpoint": int(bank_update_observed),
+        "bank_age_minutes_at_checkpoint": bank_age,
+        "settlement_amount_at_checkpoint": settlement_amount,
+        "settlement_amount_delta_at_checkpoint": settlement_amount_delta,
+    }
+
+    if list(features) != FEATURE_COLUMNS:
+        raise RuntimeError("Inference features do not match FEATURE_COLUMNS order")
+    assert_no_feature_leakage(list(features))
+    return features
+
+
 def assert_no_feature_leakage(columns: list[str]) -> None:
     """Fail fast if a future-only or identifier column enters the feature set."""
     feature_columns = set(columns) - {TARGET_COLUMN}
@@ -118,7 +268,10 @@ def validate_training_table(table: pd.DataFrame, include_ids: bool = False) -> N
             f"Expected {expected_columns}, got {list(table.columns)}."
         )
 
-    assert_no_feature_leakage(list(table.columns))
+    leakage_check_columns = list(table.columns)
+    if include_ids:
+        leakage_check_columns.remove("transaction_id")
+    assert_no_feature_leakage(leakage_check_columns)
 
     target_values = set(table[TARGET_COLUMN].dropna().unique())
     if not target_values.issubset({0, 1}):

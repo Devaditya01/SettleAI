@@ -75,7 +75,24 @@ def analyze_transaction(
     # 9. ETA Remaining Delay Estimation (with Failure Isolation)
     eta_estimation = _run_eta_estimation_isolated(trace, data_dir, status)
 
-    # 10. Extract Gateway Summary for Header
+    # 10. Build the deterministic analysis before invoking the prose-only LLM.
+    # The full trace is deliberately not included in this intermediate object.
+    analysis = {
+        "transaction_id": clean_tx_id,
+        "status": status,
+        "root_cause": root_cause,
+        "evidence_confidence": confidence,
+        "exceptions": exceptions_list,
+        "recommendation": recommendation,
+        "journey": journey,
+        "ml_prediction": ml_prediction,
+        "eta_estimation": eta_estimation,
+    }
+
+    # 11. Evidence-grounded explanation (with failure isolation)
+    explanation_result = _run_llm_explanation_isolated(analysis)
+
+    # 12. Extract Gateway Summary for Header
     gw = trace.get("gateway") or {}
     gateway_summary = {
         "transaction_id": clean_tx_id,
@@ -86,16 +103,15 @@ def analyze_transaction(
     }
 
     return {
-        "transaction_id": clean_tx_id,
+        **analysis,
         "gateway_summary": gateway_summary,
-        "status": status,
-        "root_cause": root_cause,
-        "evidence_confidence": confidence,
-        "exceptions": exceptions_list,
-        "recommendation": recommendation,
-        "journey": journey,
-        "ml_prediction": ml_prediction,
-        "eta_estimation": eta_estimation,
+        "explanation": {
+            "summary": explanation_result["summary"],
+            "next_step": explanation_result["next_step"],
+            "uncertainty": explanation_result.get("uncertainty"),
+        },
+        "explanation_source": explanation_result["source"],
+        "evidence_schema_version": explanation_result.get("evidence_schema_version"),
         "trace": trace,
     }
 
@@ -103,6 +119,29 @@ def analyze_transaction(
 # ---------------------------------------------------------------------------
 # Internal Failure-Isolated Helpers
 # ---------------------------------------------------------------------------
+
+def _run_llm_explanation_isolated(analysis: dict[str, Any]) -> dict[str, Any]:
+    """Build the allowlisted evidence packet and generate prose safely."""
+    try:
+        from src.evidence import EVIDENCE_SCHEMA_VERSION, build_llm_evidence_packet
+        from src.llm import generate_explanation_result
+
+        packet = build_llm_evidence_packet(analysis)
+        result = generate_explanation_result(packet)
+        return {**result, "evidence_schema_version": EVIDENCE_SCHEMA_VERSION}
+    except Exception as exc:
+        # Do not include exception messages: validation errors could contain input.
+        logger.warning(
+            "LLM explanation pipeline failed; using generic fallback (%s).",
+            type(exc).__name__,
+        )
+        return {
+            "summary": "The deterministic settlement analysis is available.",
+            "next_step": "Review the verified status, root cause, and exception list.",
+            "uncertainty": "Automated explanation is currently unavailable.",
+            "source": "deterministic_fallback",
+            "evidence_schema_version": None,
+        }
 
 def _run_ml_prediction_isolated(
     tx_id: str,
@@ -130,8 +169,9 @@ def _run_ml_prediction_isolated(
         return predict_delay_risk(features)
     except Exception as exc:
         logger.warning(
-            "ML delay prediction failed for '%s' (failure isolated): %s",
-            tx_id, exc,
+            "ML delay prediction failed for '%s'; failure isolated (%s).",
+            tx_id,
+            type(exc).__name__,
         )
         return {
             "applicable": False,
@@ -140,7 +180,7 @@ def _run_ml_prediction_isolated(
             "predicted_delayed": None,
             "threshold_used": None,
             "model_version": None,
-            "reason": f"ML prediction unavailable: {exc}",
+            "reason": "ML prediction unavailable.",
         }
 
 
@@ -175,7 +215,7 @@ def _run_eta_estimation_isolated(
         )
     except Exception as exc:
         logger.warning(
-            "ETA estimation failed (failure isolated): %s", exc
+            "ETA estimation failed; failure isolated (%s).", type(exc).__name__
         )
         return {
             "applicable": False,
@@ -184,5 +224,5 @@ def _run_eta_estimation_isolated(
             "basis": None,
             "sample_size": 0,
             "confidence": "LOW",
-            "reason": f"ETA estimation unavailable: {exc}",
+            "reason": "ETA estimation unavailable.",
         }

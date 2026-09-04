@@ -50,3 +50,7 @@ Do not place real financial data or API secrets in frontend files. For a live ap
 - `dashboard/js/theme.js` — edition selection and persistence
 
 The project uses system fonts and inline SVG icons, with no third-party runtime dependencies.
+
+## AI safety and model governance
+
+Backend explanations are generated only from the allowlisted `EvidencePacket` in `src/evidence.py`; raw gateway, bank, ledger, CSV, webhook, and log content cannot be passed to the LLM. Deterministic rules remain authoritative, and invalid or unavailable LLM output falls back to approved wording. See [MODEL_CARD.md](MODEL_CARD.md) for intended use, evaluation, limitations, human oversight, monitoring, and artifact provenance.
