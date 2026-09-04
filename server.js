@@ -66,5 +66,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`SettleAI dev server running at http://localhost:${PORT}`);
+  console.log(`Settlelens dev server running at http://localhost:${PORT}`);
 });
