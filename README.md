@@ -4,13 +4,16 @@ An evidence-driven settlement support frontend, branded **Settle**, built for PS
 
 ![SettleAI demo preview](docs/preview.png)
 
-Open `index.html` in a modern browser. No installation, API key, database, or build step is required. Keep `styles.css` and `app.js` alongside the HTML file.
+Open `index.html` in a modern browser. No installation, API key, database, or build step is required. Keep the extracted folders together. The landing page opens the dashboard at `dashboard/index.html`.
 
 ## Included
 
-- Two animated landing-page editions: [Midnight](landing/index.html) and [Pearl](landing/pearl.html).
-- Animated rupee payments, fee deductions, bank-credit confirmation, scroll reveals, parallax, and an interactive settlement story. See [art direction and motion notes](landing/ART_DIRECTION.md).
+- A [Terms & Conditions](terms.html) page linked from both landing-page navigation bars.
+- Two animated landing-page editions: [Midnight](index.html) and [Pearl](pearl.html).
+- Animated rupee payments, fee deductions, bank-credit confirmation, scroll reveals, parallax, and an interactive settlement story. See [art direction and motion notes](ART_DIRECTION.md).
 
+- Matching Midnight and Pearl dashboard themes, with a persistent edition switch and automatic theme selection from each landing page.
+- Startup-ready platform story covering tracing, delay explanations, exact reconciliation, visible exceptions, connector direction, and production security principles.
 - Responsive overview dashboard with twelve synthetic transactions.
 - Search by transaction ID or customer and filter by payment date and status.
 - Exceptions queue for failed payouts, missing bank outcomes, and amount mismatches.
@@ -40,8 +43,10 @@ Do not place real financial data or API secrets in frontend files. For a live ap
 
 ## Files
 
-- `index.html` — semantic interface and layout
-- `styles.css` — responsive styling
-- `app.js` — synthetic records, reconciliation rules, and interactions
+- `index.html` / `pearl.html` — landing pages
+- `dashboard/index.html` — dashboard interface and layout
+- `dashboard/css/styles.css` / `theme.css` — responsive layout and landing-page colour schemes
+- `dashboard/js/app.js` — synthetic records, reconciliation rules, and interactions
+- `dashboard/js/theme.js` — edition selection and persistence
 
 The project uses system fonts and inline SVG icons, with no third-party runtime dependencies.
