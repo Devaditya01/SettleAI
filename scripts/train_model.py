@@ -78,10 +78,12 @@ def load_training_data(path: Path) -> tuple[pd.DataFrame, pd.Series]:
 
 def split_columns(x: pd.DataFrame) -> tuple[list[str], list[str]]:
     categorical_columns = [
-        column
-        for column in x.columns
-        if x[column].dtype == "object" or str(x[column].dtype).startswith("category")
+        "payment_method",
+        "bank_name_at_checkpoint",
+        "bank_status_at_checkpoint",
+        "bank_response_code_at_checkpoint",
     ]
+    categorical_columns = [c for c in categorical_columns if c in x.columns]
     numeric_columns = [column for column in x.columns if column not in categorical_columns]
     return numeric_columns, categorical_columns
 
