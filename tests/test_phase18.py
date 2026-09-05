@@ -118,7 +118,7 @@ def test_exact_outgoing_prompt_contains_only_sanitized_packet():
         )
     )
 
-    with patch("src.llm._api_key", "test-key"), patch(
+    with patch.dict("os.environ", {"LLM_PRIMARY_PROVIDER": "gemini", "LLM_FALLBACK_PROVIDERS": ""}), patch("src.llm._api_key", "test-key"), patch(
         "src.llm._create_client", return_value=fake_client
     ):
         result = generate_explanation_result(packet)
@@ -146,7 +146,7 @@ def test_service_never_forwards_malicious_raw_source_text_to_llm():
         )
     )
 
-    with patch("src.llm._api_key", "test-key"), patch(
+    with patch.dict("os.environ", {"LLM_PRIMARY_PROVIDER": "gemini", "LLM_FALLBACK_PROVIDERS": ""}), patch("src.llm._api_key", "test-key"), patch(
         "src.llm._create_client", return_value=fake_client
     ):
         result = analyze_transaction("TXN000002", data=data)
@@ -171,7 +171,7 @@ def test_malformed_or_ungrounded_provider_output_uses_fallback():
         )
     )
 
-    with patch("src.llm._api_key", "test-key"), patch(
+    with patch.dict("os.environ", {"LLM_PRIMARY_PROVIDER": "gemini", "LLM_FALLBACK_PROVIDERS": ""}), patch("src.llm._api_key", "test-key"), patch("src.llm._groq_api_key", None), patch(
         "src.llm._create_client", return_value=fake_client
     ):
         result = generate_explanation_result(packet)
@@ -193,7 +193,7 @@ def test_provider_cannot_change_approved_operational_action():
         )
     )
 
-    with patch("src.llm._api_key", "test-key"), patch(
+    with patch.dict("os.environ", {"LLM_PRIMARY_PROVIDER": "gemini", "LLM_FALLBACK_PROVIDERS": ""}), patch("src.llm._api_key", "test-key"), patch("src.llm._groq_api_key", None), patch(
         "src.llm._create_client", return_value=fake_client
     ):
         result = generate_explanation_result(packet)
@@ -204,12 +204,49 @@ def test_provider_cannot_change_approved_operational_action():
 
 def test_provider_failure_uses_deterministic_fallback():
     packet = build_llm_evidence_packet(_analysis())
-    with patch("src.llm._api_key", "test-key"), patch(
+    with patch.dict("os.environ", {"LLM_PRIMARY_PROVIDER": "gemini", "LLM_FALLBACK_PROVIDERS": ""}), patch("src.llm._api_key", "test-key"), patch("src.llm._groq_api_key", None), patch(
         "src.llm._create_client", side_effect=RuntimeError("provider unavailable")
     ):
         result = generate_explanation_result(packet)
 
     assert result["source"] == "deterministic_fallback"
+    assert result["next_step"] == packet.support_action
+
+
+def test_groq_provider_is_used_after_gemini_failure():
+    packet = build_llm_evidence_packet(_analysis())
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "summary": "The settlement remains under review.",
+                            "next_step": packet.support_action,
+                            "uncertainty": "Review the listed exceptions.",
+                        }
+                    )
+                }
+            }
+        ]
+    }
+    fake_response = type(
+        "Response",
+        (),
+        {
+            "raise_for_status": lambda self: None,
+            "json": lambda self: payload,
+        },
+    )()
+
+    with patch.dict("os.environ", {"LLM_PRIMARY_PROVIDER": "gemini", "LLM_FALLBACK_PROVIDERS": "groq"}), patch("src.llm._api_key", "test-key"), patch(
+        "src.llm._create_client", side_effect=RuntimeError("provider unavailable")
+    ), patch("src.llm._groq_api_key", "groq-key"), patch(
+        "requests.post", return_value=fake_response
+    ):
+        result = generate_explanation_result(packet)
+
+    assert result["source"] == "groq"
     assert result["next_step"] == packet.support_action
 
 

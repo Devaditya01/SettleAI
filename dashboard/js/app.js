@@ -100,8 +100,8 @@ function renderDatasetChrome(){
 function renderIcons(root=document){root.querySelectorAll('[data-icon]').forEach(el=>{el.innerHTML=icon(el.dataset.icon);});}
 function filteredRows(){
   return transactions.filter(t=>{
-    const r=reconcile(t), attention=['failed','review'].includes(r.status);
-    return (state.view!=='exceptions'||attention) && (state.filter==='all'||(state.filter==='attention'?attention:r.status===state.filter)) && (state.date==='all'||t.date===state.date) && (!state.search||`${t.id} ${t.customer}`.toLowerCase().includes(state.search.toLowerCase()));
+    const r=reconcile(t), attention=['failed','review'].includes(r.status), exception=r.status==='review';
+    return (state.view!=='exceptions'||exception) && (state.filter==='all'||(state.filter==='attention'?attention:r.status===state.filter)) && (state.date==='all'||t.date===state.date) && (!state.search||`${t.id} ${t.customer}`.toLowerCase().includes(state.search.toLowerCase()));
   });
 }
 function renderMetrics(){
@@ -116,7 +116,7 @@ function renderMetrics(){
     {label:'Needs attention',value:String(attention.length).padStart(2,'0'),note:`${failed} failed · ${review} to review`,icon:'alert',color:'#cba0b1',points:'0,20 10,16 21,19 30,9 41,9 48,4 58,4'}
   ];
   $('#metrics').innerHTML=metrics.map(m=>`<article class="metric"><div class="metric-label">${m.label}<span class="metric-icon">${icon(m.icon)}</span></div><strong>${m.value}</strong><div class="metric-bottom"><i></i>${m.note}</div><svg class="metric-sparkline" viewBox="0 0 60 28" aria-hidden="true"><polyline points="${m.points}" fill="none" stroke="${m.color}" stroke-width="1.5"/></svg></article>`).join('');
-  $('#nav-exceptions').textContent=attention.length;
+  $('#nav-exceptions').textContent=review;
   const credited=transactions.filter(t=>reconcile(t).has_bank_credit);
   const mismatch=transactions.filter(t=>reconcile(t).reason_code==='AMOUNT_MISMATCH').length;
   $('#flow-total').textContent=money(credited.reduce((s,t)=>s+reconcile(t).credited_minor,0));
@@ -210,7 +210,7 @@ function scheduleOverviewScrollNav(){
 }
 function setView(view){
   state.view=view;state.filter='all';state.search='';state.date='all';$('#transaction-search').value='';$('#date-filter').value='all';
-  const info={overview:['Overview','Overview','A little less chasing. A lot more clarity.'],transactions:['Transactions','Transactions','Follow a payment from capture to bank credit.'],exceptions:['Exceptions','Exceptions','Failed attempts and records that need verification.'],sources:['Data sources','Data sources','Three sources. One connected view of your payments.']}[view];
+  const info={overview:['Overview','Overview','A little less chasing. A lot more clarity.'],transactions:['Transactions','Transactions','Follow a payment from capture to bank credit.'],exceptions:['Exceptions','Exceptions','Records that need verification before support confirms an outcome.'],sources:['Data sources','Data sources','Three sources. One connected view of your payments.']}[view];
   $('#breadcrumb-current').textContent=info[0];$('#page-title').textContent=info[1];$('#page-subtitle').textContent=info[2];
   setSidebarActive(view);
   $('#hero').hidden=view!=='overview';$('#flow-card').hidden=view!=='overview';$('#metrics').hidden=view==='sources';$('#transaction-card').hidden=view==='sources';$('#source-view').hidden=view!=='sources';$('.tabs').hidden=view==='exceptions';$('#table-title').textContent=view==='exceptions'?'Exception queue':'Transactions';

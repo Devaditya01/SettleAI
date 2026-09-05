@@ -57,7 +57,7 @@
     window.location.href = '/dashboard/index.html';
   });
 
-  // If already signed in, redirect straight to dashboard
+  // If already signed in, redirect straight to dashboard.
   if (!isDemoMode) {
     client.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -74,7 +74,7 @@
         window.location.href = '/dashboard/index.html';
         return;
       }
-      
+
       const { data, error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -86,6 +86,4 @@
       }
     });
   }
-
-
 })();
