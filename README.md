@@ -153,6 +153,4 @@ SettleAI/
 | TXN000002 | Successfully settled |
 | TXN000003+ | Various: delayed, mismatched, pending, failed |
 
----
 
-*Built for PS-8 · Powered by Google Gemini*
