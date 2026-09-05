@@ -40,3 +40,6 @@ coverage/
 test-results/
 playwright-report/
 *.log
+
+# Large generated data files (not needed for Railway deploy)
+data/real-data.js
