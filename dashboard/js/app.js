@@ -243,6 +243,7 @@ function runInvestigation(rawValue){
   const run=++investigationRun;
   const finish=()=>{
     if(run!==investigationRun)return;
+    $('#investigate-chat-history').innerHTML='';
     $('#investigate-loading').hidden=true;$('#investigate-result').hidden=false;$('#investigate-result-title').textContent=`${t.id} · Full investigation`;$('#investigate-report').innerHTML=fullInvestigationHTML(t);$('#breadcrumb-current').textContent=t.id;$('#investigate-dock-input').value='';renderTable();window.scrollTo({top:0,behavior:'auto'});
   };
   setTimeout(finish,matchMedia('(prefers-reduced-motion: reduce)').matches?0:650);
@@ -327,7 +328,42 @@ $('#chat-form').addEventListener('submit',e=>{e.preventDefault();const value=$('
 $('#chat-input').maxLength=600;
 $('#chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#chat-form').requestSubmit();}});
 $('#investigate-form').addEventListener('submit',e=>{e.preventDefault();runInvestigation($('#investigate-input').value);});
-$('#investigate-dock-form').addEventListener('submit',e=>{e.preventDefault();runInvestigation($('#investigate-dock-input').value);});
+$('#investigate-dock-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const value = $('#investigate-dock-input').value.trim();
+  if (!value) return;
+
+  // Check if it looks like a transaction ID
+  const idMatch = value.match(/\bTXN[-\s]?\d+\b/i);
+  if (idMatch) {
+    runInvestigation(value);
+    return;
+  }
+
+  // Otherwise treat as a freetext AI question about the current transaction
+  const t = getSelected();
+  if (!t) { runInvestigation(value); return; }
+
+  const bubbleId = 'inv-chat-' + Date.now();
+  const chatHistory = $('#investigate-chat-history');
+  const card = document.createElement('div');
+  card.className = 'inv-followup';
+  card.innerHTML = `<div class="inv-followup-question">${icon('sparkles')}<span>${escapeHTML(value)}</span></div><div class="inv-followup-answer" id="${bubbleId}"><em>Thinking…</em></div>`;
+  chatHistory.appendChild(card);
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  $('#investigate-dock-input').value = '';
+
+  fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transaction_id: t.id, question: value })
+  }).then(r => r.json()).then(data => {
+    document.getElementById(bubbleId).innerHTML = escapeHTML(data.answer).replace(/\n/g, '<br>');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }).catch(() => {
+    document.getElementById(bubbleId).innerHTML = '<span style="color:var(--red)">Failed to reach the AI engine.</span>';
+  });
+});
 $('#dialog-close').addEventListener('click',closeDialog);
 dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();}});
 $('#guide-button').addEventListener('click',showGuide);

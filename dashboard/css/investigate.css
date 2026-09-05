@@ -1,0 +1,602 @@
+/* =====================================================
+   INVESTIGATE — Full-screen Copilot-style upgrade
+   Matches the Microsoft Copilot visual language
+   ===================================================== */
+
+/* ── Landing screen ─────────────────────────────────── */
+.investigate-view {
+  background: var(--canvas);
+  min-height: calc(100vh - 68px);
+}
+
+.investigate-start {
+  min-height: calc(100vh - 68px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 28px 140px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse 70% 52% at 50% 44%, var(--accent-wash, #e8e4f8), transparent),
+    var(--canvas);
+}
+
+.investigate-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 10px/1 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  color: var(--accent, #7c6ef5);
+  margin-bottom: 20px;
+  padding: 5px 11px;
+  border: 1px solid color-mix(in srgb, var(--accent, #7c6ef5) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent, #7c6ef5) 7%, transparent);
+}
+
+.investigate-start h1 {
+  font-size: clamp(36px, 4.8vw, 62px);
+  font-weight: 640;
+  letter-spacing: -2.8px;
+  line-height: 1.03;
+  margin: 0 0 20px;
+  background: linear-gradient(135deg, var(--ink) 55%, var(--muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.investigate-start > p {
+  max-width: 520px;
+  font-size: 14.5px;
+  line-height: 1.85;
+  color: var(--muted);
+  margin: 0 0 38px;
+}
+
+/* ── Search bar ──────────────────────────────────────── */
+.investigate-form {
+  width: min(680px, 100%);
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 9px 8px 20px;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: 0 20px 70px #00000010, 0 2px 8px #00000008;
+  transition: border-color .2s, box-shadow .2s, transform .18s;
+}
+
+.investigate-form:focus-within {
+  border-color: var(--accent, #7c6ef5);
+  box-shadow: 0 20px 70px #00000018, 0 0 0 3.5px color-mix(in srgb, var(--accent, #7c6ef5) 18%, transparent);
+  transform: translateY(-2px);
+}
+
+.investigate-form input {
+  font-size: 15.5px;
+  font-weight: 400;
+  letter-spacing: -0.1px;
+}
+
+.investigate-form button {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: var(--ink);
+  transition: background .18s, transform .18s;
+}
+
+.investigate-form button:hover {
+  background: var(--accent, #7c6ef5);
+  transform: translateY(-2px) scale(1.04);
+}
+
+/* ── Example pills ───────────────────────────────────── */
+.investigate-examples {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 36px;
+}
+
+.investigate-examples > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.investigate-examples button {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 11px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  transition: border-color .18s, transform .18s, background .18s;
+}
+
+.investigate-examples button:hover {
+  border-color: var(--accent, #7c6ef5);
+  background: color-mix(in srgb, var(--accent, #7c6ef5) 8%, var(--panel));
+  transform: translateY(-1px);
+}
+
+/* ── Loading animation ───────────────────────────────── */
+.investigate-loading {
+  min-height: calc(100vh - 68px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 50px;
+  text-align: center;
+}
+
+.investigate-loading strong {
+  font-size: 18px;
+  font-weight: 560;
+  letter-spacing: -0.4px;
+  margin-bottom: 20px;
+}
+
+.investigate-loading > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ── Result container ────────────────────────────────── */
+.investigate-result {
+  width: min(1060px, calc(100% - 60px));
+  margin: 0 auto;
+  padding: 36px 0 160px;
+}
+
+.investigate-result-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.investigate-result-top .eyebrow {
+  font: 9px/1 'Segoe UI Mono', Consolas, monospace;
+  letter-spacing: 2.4px;
+  color: var(--accent, #7c6ef5);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.investigate-result-top h1 {
+  font-size: clamp(26px, 2.8vw, 38px);
+  font-weight: 600;
+  letter-spacing: -1.6px;
+  line-height: 1.1;
+}
+
+/* ── Report card ─────────────────────────────────────── */
+#investigate-report {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: clamp(28px, 4.5vw, 56px);
+  box-shadow: 0 28px 90px #00000009;
+}
+
+/* Top meta row */
+.detail-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.detail-summary p {
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Reason code pills */
+.finding-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 22px 0 0;
+}
+
+.finding-meta span {
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--raised);
+  color: var(--muted);
+  font: 9px/1 'Segoe UI Mono', Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+/* Headline */
+#investigate-report > .answer-title {
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.9px;
+  margin: 18px 0 12px;
+}
+
+#investigate-report > .detail-description {
+  font-size: 14px;
+  line-height: 1.88;
+  color: var(--muted);
+  max-width: 760px;
+  margin-bottom: 36px;
+}
+
+/* ── Two-column grid ─────────────────────────────────── */
+#investigate-report .detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: clamp(40px, 7vw, 88px);
+  padding: 8px 0 28px;
+  border-top: 1px solid var(--line);
+}
+
+#investigate-report .detail-heading {
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 26px 0 18px;
+  color: var(--ink);
+}
+
+/* Timeline */
+#investigate-report .detail-timeline .timeline-step {
+  padding-bottom: 26px;
+}
+
+#investigate-report .detail-timeline .timeline-step strong {
+  font-size: 13px;
+  color: var(--ink);
+  font-weight: 560;
+}
+
+#investigate-report .detail-timeline .timeline-step small {
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+#investigate-report .timeline-step-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+#investigate-report .timeline-step-icon svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Money breakdown */
+#investigate-report .breakdown-row {
+  font-size: 13px;
+  padding: 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+#investigate-report .breakdown-row:last-child {
+  border-bottom: none;
+}
+
+#investigate-report .breakdown-row.total {
+  font-weight: 660;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+#investigate-report .guide-notice {
+  margin-top: 20px;
+  font-size: 11.5px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--raised);
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+/* ── Exception box ───────────────────────────────────── */
+#investigate-report > .exception-box {
+  margin: 6px 0 22px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border-left: 3px solid;
+}
+
+#investigate-report > .exception-box.no-exception {
+  border-left-color: var(--green, #6dbfa0);
+  background: color-mix(in srgb, var(--green, #6dbfa0) 8%, var(--raised));
+}
+
+#investigate-report > .exception-box:not(.no-exception) {
+  border-left-color: var(--amber, #c8a86e);
+  background: color-mix(in srgb, var(--amber, #c8a86e) 9%, var(--raised));
+}
+
+#investigate-report > .exception-box .exception-box-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#investigate-report > .exception-box .exception-box-title svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+#investigate-report > .exception-box p {
+  font-size: 12.5px;
+  line-height: 1.75;
+  margin: 0;
+  color: var(--ink);
+}
+
+/* ── Next step ───────────────────────────────────────── */
+#investigate-report > .next-step {
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 0 0 28px;
+  color: var(--muted);
+}
+
+#investigate-report > .next-step strong {
+  color: var(--ink);
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+#investigate-report > .next-step a,
+#investigate-report > .next-step span.hint {
+  color: var(--accent, #7c6ef5);
+}
+
+/* Evidence chips */
+.evidence-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+#investigate-report .evidence-chip {
+  font-size: 11.5px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: border-color .18s, transform .15s;
+  cursor: pointer;
+}
+
+#investigate-report .evidence-chip:hover {
+  border-color: var(--accent, #7c6ef5);
+  transform: translateY(-1px);
+}
+
+#investigate-report .evidence-chip svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0.65;
+}
+
+/* Export button */
+.investigation-export {
+  margin-top: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 11px 18px;
+  border-radius: 22px;
+}
+
+/* ── Docked chat bar (Copilot "Do anything") ─────────── */
+.investigate-dock {
+  position: fixed;
+  z-index: 10;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(calc(-50% + 109px));  /* offset for sidebar width */
+  width: min(660px, calc(100vw - 310px));
+  min-height: 60px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 8px 40px #00000022, 0 2px 12px #00000014, 0 0 0 1.5px var(--line);
+  border: 0;
+  padding: 8px 9px 8px 18px;
+  gap: 12px;
+  transition: box-shadow .2s, transform .18s;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+}
+
+.investigate-dock:focus-within {
+  box-shadow: 0 12px 50px #00000030, 0 0 0 2.5px var(--accent, #7c6ef5);
+  transform: translateX(calc(-50% + 109px)) translateY(-2px);
+}
+
+.investigate-dock > svg {
+  width: 19px;
+  height: 19px;
+  color: var(--accent, #7c6ef5);
+  opacity: 0.75;
+}
+
+.investigate-dock input {
+  font-size: 14px;
+  font-weight: 400;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 12px 0;
+  min-width: 0;
+}
+
+.investigate-dock input::placeholder {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.investigate-dock button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--canvas);
+  display: grid;
+  place-items: center;
+  transition: background .18s, transform .15s;
+}
+
+.investigate-dock button:hover {
+  background: var(--accent, #7c6ef5);
+  transform: translateY(-1px);
+}
+
+.investigate-dock button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── AI chat follow-up in the report ─────────────────── */
+#investigate-chat-history {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.inv-followup {
+  background: var(--raised);
+  border-radius: 18px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+}
+
+.inv-followup-question {
+  font-size: 13px;
+  font-weight: 560;
+  color: var(--ink);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.inv-followup-question svg {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  color: var(--accent, #7c6ef5);
+  flex-shrink: 0;
+}
+
+.inv-followup-answer {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.inv-followup-answer em {
+  color: var(--muted);
+  font-style: italic;
+  opacity: 0.75;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 1250px) {
+  .investigate-dock {
+    transform: translateX(calc(-50% + 92px));
+    width: min(620px, calc(100vw - 240px));
+  }
+  .investigate-dock:focus-within {
+    transform: translateX(calc(-50% + 92px)) translateY(-2px);
+  }
+}
+
+@media (max-width: 1050px) {
+  .investigate-dock {
+    transform: translateX(calc(-50% + 38px));
+    width: min(580px, calc(100vw - 120px));
+  }
+  .investigate-dock:focus-within {
+    transform: translateX(calc(-50% + 38px)) translateY(-2px);
+  }
+  #investigate-report .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 850px) {
+  .investigate-result {
+    width: calc(100% - 36px);
+    padding-top: 28px;
+  }
+  .investigate-dock {
+    transform: translateX(calc(-50% + 38px));
+    width: calc(100vw - 100px);
+    bottom: 16px;
+  }
+  .investigate-dock:focus-within {
+    transform: translateX(calc(-50% + 38px)) translateY(-2px);
+  }
+}
+
+@media (max-width: 560px) {
+  .investigate-start { padding: 40px 18px 130px; }
+  .investigate-start h1 { font-size: 34px; letter-spacing: -1.6px; }
+  .investigate-dock {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    transform: none;
+    bottom: 12px;
+  }
+  .investigate-dock:focus-within {
+    transform: translateY(-2px);
+  }
+  #investigate-report { border-radius: 18px; padding: 22px 18px; }
+  .detail-summary { flex-direction: column; gap: 10px; }
+}
