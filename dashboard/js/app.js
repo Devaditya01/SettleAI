@@ -244,7 +244,15 @@ function runInvestigation(rawValue){
   const finish=()=>{
     if(run!==investigationRun)return;
     $('#investigate-chat-history').innerHTML='';
-    $('#investigate-loading').hidden=true;$('#investigate-result').hidden=false;$('#investigate-result-title').textContent=`${t.id} · Full investigation`;$('#investigate-report').innerHTML=fullInvestigationHTML(t);$('#breadcrumb-current').textContent=t.id;$('#investigate-dock-input').value='';renderTable();window.scrollTo({top:0,behavior:'auto'});
+    $('#investigate-loading').hidden=true;
+    $('#investigate-result').hidden=false;
+    $('#investigate-result-title').textContent=`${t.id} · Full investigation`;
+    $('#investigate-report').innerHTML=fullInvestigationHTML(t);
+    $('#breadcrumb-current').textContent=t.id;
+    $('#investigate-dock-input').value='';
+    renderTable();
+    window.scrollTo({top:0,behavior:'auto'});
+    renderInvestigateChat(t);
   };
   setTimeout(finish,matchMedia('(prefers-reduced-motion: reduce)').matches?0:650);
 }
@@ -294,6 +302,87 @@ function ask(question){
 function notify(message){const toast=$('#toast');toast.textContent=message;toast.classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>toast.classList.remove('show'),3500);}
 function download(filename,content,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);notify(`Downloaded ${filename}`);}
 function csv(rows){const keys=[...new Set(rows.flatMap(Object.keys))];const cell=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"';};return '\uFEFF'+[keys.map(cell).join(','),...rows.map(row=>keys.map(k=>cell(row[k])).join(','))].join('\r\n');}
+function renderInvestigateChat(t) {
+  const history = $('#investigate-chat-history');
+  history.innerHTML = `
+    <div class="inv-chat-panel" id="inv-chat-panel">
+      <div class="inv-chat-header">
+        <span class="inv-chat-logo">${icon('sparkles')}</span>
+        <div>
+          <strong>Ask the AI</strong>
+          <span>Powered by evidence from ${escapeHTML(t.id)}</span>
+        </div>
+      </div>
+      <div class="inv-chat-messages" id="inv-chat-messages">
+        <div class="inv-chat-welcome">
+          <p>I've analysed the full gateway, bank, and ledger records for <strong>${escapeHTML(t.id)}</strong>. Ask me anything about this transaction.</p>
+          <div class="inv-chat-suggestions">
+            <button data-inv-question="Why hasn't this transaction settled?">Why hasn't this settled?</button>
+            <button data-inv-question="What fees were deducted?">What fees were deducted?</button>
+            <button data-inv-question="What should I do next?">What should I do next?</button>
+            <button data-inv-question="Explain the bank outcome.">Explain the bank outcome</button>
+          </div>
+        </div>
+      </div>
+      <form class="inv-chat-form" id="inv-chat-form">
+        <label class="sr-only" for="inv-chat-input">Ask about this transaction</label>
+        <textarea id="inv-chat-input" rows="1" placeholder="Ask anything about ${escapeHTML(t.id)}…" maxlength="600"></textarea>
+        <button type="submit" aria-label="Send" class="inv-chat-send">${icon('arrow-up')}</button>
+      </form>
+    </div>`;
+
+  function sendInvChat(question) {
+    question = question.trim().slice(0, 600);
+    if (!question) return;
+    const messages = $('#inv-chat-messages');
+    const msgId = 'inv-msg-' + Date.now();
+    const userBubble = document.createElement('div');
+    userBubble.className = 'inv-msg inv-msg-user';
+    userBubble.textContent = question;
+    messages.appendChild(userBubble);
+    const aiBubble = document.createElement('div');
+    aiBubble.className = 'inv-msg inv-msg-ai';
+    aiBubble.id = msgId;
+    aiBubble.innerHTML = `<span class="inv-msg-thinking">${icon('sparkles')}<em>Thinking…</em></span>`;
+    messages.appendChild(aiBubble);
+    messages.scrollTop = messages.scrollHeight;
+    $('#inv-chat-input').value = '';
+    $('#inv-chat-input').style.height = 'auto';
+
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({transaction_id: t.id, question})
+    }).then(r => r.json()).then(data => {
+      const el = document.getElementById(msgId);
+      if (el) { el.innerHTML = escapeHTML(data.answer || '').replace(/\n/g, '<br>'); }
+      messages.scrollTop = messages.scrollHeight;
+    }).catch(() => {
+      const el = document.getElementById(msgId);
+      if (el) el.innerHTML = '<span class="inv-msg-error">Failed to reach the AI engine.</span>';
+    });
+  }
+
+  document.getElementById('inv-chat-form').addEventListener('submit', e => {
+    e.preventDefault();
+    sendInvChat($('#inv-chat-input').value);
+  });
+
+  $('#inv-chat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendInvChat($('#inv-chat-input').value); }
+  });
+
+  $('#inv-chat-input').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  history.addEventListener('click', e => {
+    const btn = e.target.closest('[data-inv-question]');
+    if (btn) sendInvChat(btn.dataset.invQuestion);
+  });
+}
+
 function exportReport(){
   const rows=filteredRows().map(t=>{const r=reconcile(t);return {transaction_id:t.id,merchant_id:MERCHANT,customer:t.customer,payment_date:t.date,currency:'INR',captured_minor:r.captured_minor,fee_minor:r.fees_minor,expected_minor:r.expected_minor,confirmed_bank_credit_minor:r.has_bank_credit?r.credited_minor:'',status:r.status,explanation:r.explanation,exception:r.exception,next_step:r.next,as_of:AS_OF};});
   if(!rows.length){notify('No matching transactions to export. Clear the filters first.');return;}
