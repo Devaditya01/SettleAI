@@ -1,14 +1,12 @@
-# Local credentials and machine-specific files
+# ── Secrets & local config ──────────────────────────────
 .env
 .env.*
 !.env.example
 *.pem
 *.key
 config.js
-.DS_Store
-Thumbs.db
 
-# Python
+# ── Python ───────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -18,28 +16,37 @@ dist/
 build/
 .eggs/
 *.egg
+.pytest_cache/
 
-# Virtual environments
+# ── Virtual environments ──────────────────────────────────
 venv/
 .venv/
 env/
 
-# IDE
+# ── OS / IDE ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.swp
 .swo
 
-# ML model artifacts (re-generated via train_model.py)
-# Uncomment the line below if you want to track the trained model in git:
-# !models/delay_model.joblib
-
-# Optional future tooling and temporary output
+# ── Node (legacy — server.js removed) ────────────────────
 node_modules/
+
+# ── Test output ───────────────────────────────────────────
 coverage/
 test-results/
 playwright-report/
 *.log
 
-# Large generated data files (not needed for Railway deploy)
+# ── Large generated data files ───────────────────────────
 data/real-data.js
+
+# ── Development planning docs (not needed in prod) ───────
+goal/
+BUILD_PLAN.md
+ART_DIRECTION.md
+Backend_Engineer.md
+ML_Engineer.md
+Phase4_Implementation_Plan.md

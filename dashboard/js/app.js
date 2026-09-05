@@ -237,8 +237,38 @@ function runInvestigation(rawValue){
   const id=normalizeTransactionId(value);
   const t=transactions.find(transaction=>transaction.id===id);
   if(!t){
-    const error=$('#investigate-error');error.textContent=`No matching transaction for “${value}” in this workspace.`;error.hidden=false;$('#investigate-input').focus();return;
+    // If it looks like a transaction ID attempt, show error
+    const looksLikeId = /^TXN/i.test(value.trim()) || /^\d{5,}$/.test(value.trim());
+    if(looksLikeId){
+      const error=$('#investigate-error');error.textContent=`No matching transaction for "${value}" in this workspace.`;error.hidden=false;$('#investigate-input').focus();return;
+    }
+    // Otherwise treat as a general AI question — show inline chat response
+    $('#investigate-error').hidden=true;
+    $('#investigate-start').hidden=true;
+    $('#investigate-result').hidden=true;
+    $('#investigate-loading').hidden=false;
+    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:value})})
+      .then(r=>r.json())
+      .then(data=>{
+        $('#investigate-loading').hidden=true;
+        $('#investigate-result').hidden=false;
+        $('#investigate-result-title').textContent='SettleLens Copilot';
+        $('#investigate-report').innerHTML=`
+          <div class="inv-landing-chat-response">
+            <div class="inv-landing-chat-q">${escapeHTML(value)}</div>
+            <div class="inv-landing-chat-a">${escapeHTML(data.answer||'').replace(/\n/g,'<br>')}</div>
+            <p class="inv-landing-chat-hint">To investigate a specific transaction, enter a transaction ID above.</p>
+          </div>`;
+        $('#investigate-chat-history').innerHTML='';
+      })
+      .catch(()=>{
+        $('#investigate-loading').hidden=true;
+        $('#investigate-start').hidden=false;
+        const error=$('#investigate-error');error.textContent='Could not reach the AI engine. Try again.';error.hidden=false;
+      });
+    return;
   }
+
   state.selected=t.id;$('#investigate-error').hidden=true;$('#investigate-start').hidden=true;$('#investigate-result').hidden=true;$('#investigate-loading').hidden=false;
   const run=++investigationRun;
   const finish=()=>{
