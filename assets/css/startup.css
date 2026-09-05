@@ -1,4 +1,4 @@
-/* Startup story sections, built on the existing Settle visual language. */
+/* Startup story sections, built on the existing Settlelens visual language. */
 .startup-platform{background:#151612;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-top:105px;padding-bottom:105px}
 .platform-heading{display:grid;grid-template-columns:1.25fr .75fr;gap:35px;align-items:end}
 .platform-heading .section-label{grid-column:1/-1;margin-bottom:21px}

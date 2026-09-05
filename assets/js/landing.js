@@ -4,6 +4,12 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 const finePointer = window.matchMedia('(pointer: fine)');
 let motionPaused=false;
 if (!reduced.matches) root.classList.add('js-motion');
+document.querySelectorAll('.edition').forEach(link => {
+  link.addEventListener('click', () => {
+    const edition = link.getAttribute('href').includes('pearl') ? 'pearl' : 'midnight';
+    try { localStorage.setItem('settlelens-edition', edition); } catch (_) {}
+  });
+});
 // No image or network request can indefinitely hold the entry transition.
 setTimeout(() => root.classList.add('ready'), reduced.matches ? 0 : 80);
 const nav = document.querySelector('.nav-wrap');
@@ -101,7 +107,7 @@ modal.addEventListener('click',event=>{if(event.target===modal){const box=modal.
 document.addEventListener('visibilitychange',()=>{root.style.setProperty('--ambient-play',document.hidden?'paused':'running');});
 const narrative=[
   ['01 / G-1042-01','The payment was captured.','The gateway confirms a ₹2,500 payment from the customer on 03 September 2026. Capture tells us the payment succeeded; it does not prove the merchant’s bank account was credited.'],
-  ['02 / L-1042-01 + L-1042-02','The payable amount is ₹2,450.','The ledger records the ₹2,500 captured amount and a ₹50 fee deduction. Those entries explain the ₹2,450 expected settlement. These are synthetic demo amounts.'],
+  ['02 / L-1042-01 + L-1042-02','The payable amount is ₹2,450.','The ledger records the ₹2,500 captured amount and a ₹50 fee deduction. Those entries explain the ₹2,450 expected settlement. These are synthetic sample amounts.'],
   ['03 / B-1042-01','The bank rejected the payout.','The bank record reports INVALID_BENEFICIARY for this settlement attempt. That record supports the failure explanation: the beneficiary details were invalid.'],
   ['04 / OPEN EXCEPTION','The retry is still unknown.','No subsequent attempt is present in the loaded records. The next step is to verify the beneficiary details and ask the payments team whether a retry is scheduled. A new payout date cannot be promised.']
 ];

@@ -1,4 +1,4 @@
-/* Settle / Midnight & Pearl — no external fonts or runtime dependencies. */
+/* Settlelens / Midnight & Pearl — no external fonts or runtime dependencies. */
 :root {
   --bg: #11110f; --fg: #f1eee6; --muted: #98968d; --line: #ffffff20;
   --accent: #cfbda0; --panel: #1c1c19; --soft: #d2ccbf;
@@ -32,6 +32,12 @@ em, .serif { font-family: Georgia, "Times New Roman", serif; font-weight: 400; f
 .nav-wrap { position: absolute; left: 0; top: 0; width: 100%; height: 102px; padding: 0 5%; display: flex; align-items: center; justify-content: space-between; z-index: 30; border-bottom: 1px solid var(--line); transition: background .3s, height .3s; }
 .nav-wrap.scrolled { position: fixed; height: 74px; background: #11110fe8; backdrop-filter: blur(22px); }
 .logo { display: inline-flex; align-items: center; font-size: 33px; font-weight: 650; letter-spacing: -1.7px; }
+.brand-logo-image { display: block; width: 100%; height: auto; object-fit: contain; }
+.logo .brand-logo-image { width: 184px; max-height: 64px; }
+.boot-logo .brand-logo-image { width: 330px; max-height: 120px; }
+.ticket-brand .brand-logo-image { width: 80px; filter: brightness(.18); }
+.mini-mark { display: inline-flex; width: 82px; flex: 0 0 82px; }
+.mini-mark .brand-logo-image { width: 82px; filter: brightness(.18); }
 .logo > span:last-child { color: var(--accent); }
 .mark { display: flex; flex-direction: column; width: 29px; gap: 4px; transform: rotate(-11deg); margin-right: 10px; }
 .mark i { display: block; height: 5px; width: 28px; background: currentColor; border-radius: 3px; }
@@ -157,6 +163,7 @@ footer { border-top: 1px solid var(--line); margin: 0 5%; padding: 34px 0; displ
 @keyframes story-step { 0%,100% { opacity: .5; transform: scale(.9); } 40% { opacity: 1; transform: scale(1.1); } }
 /* Pearl edition — paper, champagne, graphite. */
 .pearl { --bg: #eeeae2; --fg: #242722; --muted: #727665; --line: #2a302020; --accent: #8e876e; --panel: #e3ded3; --soft: #8a8a79; }
+.pearl .logo .brand-logo-image,.pearl .boot-logo .brand-logo-image { filter: brightness(.18); }
 .pearl .nav-wrap.scrolled { background: #eeeae2e8; }.pearl .nav-wrap nav a { color: #777c6d; }.pearl .nav-cta { border-color: #b4b7a6; }.pearl .edition span { background: #33342d; border-color: #33342d; }.pearl .primary { background: #2d3229; color: #f2f0e5; }.pearl .primary:hover { background: #5c634e; }.pearl .hero { min-height: 800px; }
 .pearl .hero-visual { right: -5%; width: 69%; top: 9%; height: 89%; }.pearl .hero-visual img { mix-blend-mode: multiply; }.pearl .hero-glow { background: radial-gradient(ellipse,#fff8,transparent 70%); }.pearl .hero-visual:after { background: linear-gradient(90deg,var(--bg),transparent 25%); }.pearl .float-tag { background: #f9f7efb5; border-color: #d4cbbc; box-shadow: 0 10px 30px #6f69451a; }.pearl .float-tag strong { color: #72735d; }.pearl .float-tag span { color: #aaa28e; }.pearl .float-tag i { border-color: #8d9677; }.pearl .tag-a { right: 18%; top: 21%; }.pearl .tag-b { left: 17%; bottom: 25%; }.pearl .hero-foot { color: #979a87; }.pearl .coordinate,.pearl .hero-index { color: #999986; }
 .pearl .question { background: #e3dfd5; }.pearl .display { font-size: clamp(57px,7.2vw,111px); line-height: 1.07; }.pearl .display span { color: #969786; }.pearl .question-bottom p { color: #828570; }.pearl .signal { color: #8c8c77; }.pearl .signal i,.pearl .signal i:after { border-color: #aeb095; }.pearl .marquee { color: #9b9b85; }
@@ -201,4 +208,8 @@ body:not(.legal-page)>footer:not(.minimal-footer) { display: none!important; }
 @media(max-width:600px) {
   .minimal-footer { min-height: 74px; padding: 0; margin: 0 7%; }
   .minimal-footer a,.minimal-footer span { font-size: 9px; }
+  .logo .brand-logo-image { width: 145px; }
+  .boot-logo .brand-logo-image { width: 250px; }
+  .mini-mark,.mini-mark .brand-logo-image { width: 68px; }
+  .mini-mark { flex-basis: 68px; }
 }

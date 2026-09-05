@@ -3,23 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Sign in to Settle — Payment clarity, finally.">
+  <meta name="description" content="Sign in to SettleLens — Payment clarity, finally.">
   <meta name="theme-color" content="#11110f">
-  <title>Sign In — Settle</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%2311110f'/%3E%3Cpath d='M11 15h18M11 21h13M11 27h8' stroke='%23cfbda0' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <title>Sign In — SettleLens</title>
+  <script src="assets/js/site-theme.js"></script>
+  <link rel="icon" type="image/png" href="assets/images/settlelens-logo.png">
   <link rel="stylesheet" href="assets/css/landing.css">
   <style>
     .login-page {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: grid;
+      place-items: center;
       min-height: 100svh;
-      padding: 2rem;
+      padding: calc(102px + 2rem) clamp(1rem, 4vw, 2rem) 2rem;
     }
 
     .login-card {
       width: 100%;
       max-width: 420px;
+      min-width: 0;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 24px;
@@ -179,14 +180,23 @@
       width: 18px;
       height: 18px;
     }
+
+    @media (max-width: 800px) {
+      .login-page { padding-top: calc(84px + 1.5rem); }
+    }
+
+    @media (max-width: 480px) {
+      .login-page { align-items: start; padding-inline: 1rem; }
+      .login-card { padding: 1.5rem; border-radius: 16px; }
+    }
   </style>
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
 
   <header class="nav-wrap">
-    <a class="logo" href="index.html" aria-label="Back to Settlelens home">
-      <span class="mark"><i></i><i></i><i></i></span>settlelens<span>.</span>
+    <a class="logo" href="index.html" aria-label="Back to SettleLens home">
+      <img class="brand-logo-image" src="assets/images/settlelens-logo.png" alt="SettleLens">
     </a>
   </header>
 
@@ -245,10 +255,9 @@
     </div>
   </main>
 
-  <!-- Supabase via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Local config (gitignored) -->
   <script src="config.js"></script>
+  <script src="assets/js/supabase-loader.js"></script>
   <script src="assets/js/login.js"></script>
 </body>
 </html>

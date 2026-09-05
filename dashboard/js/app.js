@@ -31,12 +31,12 @@ const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-const money = window.SettleEngine.money;
+const money = window.SettleLensEngine.money;
 const shortMoney = minor => minor >= 10000000 ? `₹${(minor/10000000).toFixed(1)}L` : minor >= 100000 ? `₹${(minor/100000).toFixed(1)}k` : money(minor);
 const dateLabel = date => new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Kolkata'}).format(new Date(date+'T12:00:00+05:30'));
 const timeLabel = date => new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'}).format(new Date(date));
 const DATASET = window.SettleRealData;
-if (!DATASET || !window.SettleEngine) throw new Error('Settlement data or reconciliation engine failed to load.');
+if (!DATASET || !window.SettleLensEngine) throw new Error('Settlement data or reconciliation engine failed to load.');
 const MERCHANT = DATASET.merchant_id;
 const MERCHANT_NAME = DATASET.merchant_name || 'Imported Records';
 const AS_OF = DATASET.as_of;
@@ -64,7 +64,7 @@ const transactions = DATASET.transactions.map(meta=>({
 const state = {view:'overview',filter:'all',search:'',date:'all',selected: transactions.length > 0 ? transactions[0].id : null};
 const sourceRecords = type => DATASET.sources[type] || [];
 const statusBadge = status => {const safe=Object.hasOwn(STATUS_LABEL,status)?status:'review';return `<span class="status ${safe}">${STATUS_LABEL[safe]}</span>`;};
-const reconcile = transaction => window.SettleEngine.reconcile(transaction,{asOf:AS_OF});
+const reconcile = transaction => window.SettleLensEngine.reconcile(transaction,{asOf:AS_OF});
 const getSelected = () => transactions.find(t=>t.id===state.selected);
 const compactId = value => String(value).toUpperCase().replace(/[\s-]/g,'');
 const normalizeTransactionId = value => transactions.find(t=>compactId(t.id)===compactId(value))?.id || String(value).toUpperCase();
@@ -144,7 +144,7 @@ function timeline(t){
   t.gateway.filter(r=>r.event_type==='settlement_scheduled').forEach(r=>events.push({at:r.occurred_at,title:'Future payout scheduled',detail:`${timeLabel(r.scheduled_for)} IST · ${r.source_record_id}`,kind:'pending',icon:'clock'}));
   t.bank.forEach(r=>events.push({at:r.occurred_at,title:r.status==='credited'?'Bank credit confirmed':'Bank rejected attempt',detail:r.status==='credited'?`${money(r.amount_minor)} · ${r.source_record_id}`:`${String(r.reason_code||'unmapped reason').replaceAll('_',' ').toLowerCase()} · ${r.source_record_id}`,kind:r.status==='credited'?'settled':'failed',icon:r.status==='credited'?'check':'close'}));
   const sorted=events.sort((a,b)=>new Date(a.at)-new Date(b.at));
-  if(result.reason_code==='BANK_OUTCOME_MISSING')sorted.push({at:AS_OF,title:'Bank outcome unavailable',detail:'Unknown as of this snapshot',kind:'review',icon:'help'});
+  if(result.reason_code==='BANK_OUTCOME_MISSING')sorted.push({at:AS_OF,title:'Bank outcome unavailable',detail:'Unknown as of this snapshot',kind:'review',icon:'alert'});
   return sorted;
 }
 function renderTimeline(t,full=false){
@@ -157,7 +157,7 @@ function selectTransaction(id,question,scroll=false){
   const t=transactions.find(t=>t.id===id);if(!t)return;
   state.selected=id;const r=reconcile(t);
   const defaultQuestion=r.status==='settled'?`Has ${id} settled successfully?`:r.status==='pending'?`When will ${id} settle?`:r.status==='failed'?`Why hasn’t ${id} settled?`:`What happened to ${id}?`;
-  $('#investigation-content').innerHTML=`<div class="query-bubble">${escapeHTML(question||defaultQuestion)}<small>${escapeHTML(MERCHANT_NAME)} · ${escapeHTML(id)}</small></div><div class="response-label">${icon('sparkles')}Settle copilot<span>Verified rules</span></div>${statusBadge(r.status)}<div class="finding-meta"><span>${escapeHTML(r.reason_code)}</span><span>${escapeHTML(r.certainty)}</span></div><h3 class="answer-title">${escapeHTML(r.title)}</h3><p class="answer-description">${escapeHTML(r.explanation)}</p><div class="evidence-chips">${evidenceChips(t)}</div><div class="mini-timeline">${renderTimeline(t)}</div><div class="exception-box ${r.exception?'':'no-exception'}"><div class="exception-box-title">${icon(r.exception?'alert':'shield')}${r.exception?'What we can’t confirm':'The records agree'}</div><p>${escapeHTML(r.exception||'No exceptions detected in the loaded gateway, bank, and ledger records.')}</p></div><p class="next-step"><strong>Next step</strong><br>${escapeHTML(r.next)}</p><button class="trace-button" data-trace="${escapeHTML(t.id)}">View full investigation ${icon('arrow-up-right')}</button><div id="followups"></div>`;
+  $('#investigation-content').innerHTML=`<div class="query-bubble">${escapeHTML(question||defaultQuestion)}<small>${escapeHTML(MERCHANT_NAME)} · ${escapeHTML(id)}</small></div><div class="response-label">${icon('sparkles')}SettleLens copilot<span>Verified rules</span></div>${statusBadge(r.status)}<div class="finding-meta"><span>${escapeHTML(r.reason_code)}</span><span>${escapeHTML(r.certainty)}</span></div><h3 class="answer-title">${escapeHTML(r.title)}</h3><p class="answer-description">${escapeHTML(r.explanation)}</p><div class="evidence-chips">${evidenceChips(t)}</div><div class="mini-timeline">${renderTimeline(t)}</div><div class="exception-box ${r.exception?'':'no-exception'}"><div class="exception-box-title">${icon(r.exception?'alert':'shield')}${r.exception?'What we can’t confirm':'The records agree'}</div><p>${escapeHTML(r.exception||'No exceptions detected in the loaded gateway, bank, and ledger records.')}</p></div><p class="next-step"><strong>Next step</strong><br>${escapeHTML(r.next)}</p><button class="trace-button" data-trace="${escapeHTML(t.id)}">View full investigation ${icon('arrow-up-right')}</button><div id="followups"></div>`;
   renderTable();
   $('#copilot-body').scrollTop=0;
   if(scroll&&window.innerWidth<=850)$('.copilot').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
@@ -182,7 +182,7 @@ function showEvidence(type,id){
 }
 function showGuide(){
   const examples=transactions.slice(0,4).map(t=>`<button data-demo-case="${escapeHTML(t.id)}">${escapeHTML(t.id)} ↗</button>`).join('');
-  openDialog('Meet your settlement copilot.',`<p class="guide-intro">One place to answer the question that keeps coming back: <strong>“Where is my settlement?”</strong></p><div class="guide-step"><span class="guide-number">1</span><div><strong>Find a payment</strong><p>Search a real transaction ID, filter by payment date, or open the exceptions queue.</p></div></div><div class="guide-step"><span class="guide-number">2</span><div><strong>Connect the evidence</strong><p>Select a transaction to inspect its gateway, bank, and ledger records.</p></div></div><div class="guide-step"><span class="guide-number">3</span><div><strong>Know what’s known</strong><p>Read the confirmed outcome, inspect any uncertainty, and export a case summary for support.</p></div></div><div class="guide-scenarios">${examples}</div><p class="guide-notice"><strong>Loaded scope:</strong> ${transactions.length} transactions across ${sourceTypes.length} source systems. Responses use deterministic reconciliation rules over the loaded records.</p>`,'A QUICK TOUR');
+  openDialog('Meet your settlement copilot.',`<p class="guide-intro">One place to answer the question that keeps coming back: <strong>“Where is my settlement?”</strong></p><div class="guide-step"><span class="guide-number">1</span><div><strong>Find a payment</strong><p>Search a transaction ID, filter by payment date, or open the exceptions queue.</p></div></div><div class="guide-step"><span class="guide-number">2</span><div><strong>Connect the evidence</strong><p>Select a transaction to inspect its gateway, bank, and ledger records.</p></div></div><div class="guide-step"><span class="guide-number">3</span><div><strong>Know what’s known</strong><p>Read the confirmed outcome, inspect any uncertainty, and export a case summary for support.</p></div></div><div class="guide-scenarios">${examples}</div>`,'A QUICK TOUR');
 }
 function renderSources(){
   const sources=[{key:'gateway',title:'Payment gateway',file:'gateway_logs.csv',icon:'card',description:'Captured payments, scheduled settlements, and payout initiation events.'},{key:'bank',title:'Bank settlements',file:'bank_settlements.csv',icon:'bank',description:'Recorded credit outcomes and failed payout attempts. Missing outcomes remain unknown.'},{key:'ledger',title:'Merchant ledger',file:'ledger_entries.csv',icon:'ledger',description:'Captured receivables, recorded fee deductions, and settlement postings.'}];
@@ -217,7 +217,7 @@ function setView(view){
   $('#export-button').hidden=view==='sources';renderTable();if(view==='sources')renderSources();updateOverviewScrollNav();
 }
 function appendFollowup(question,answer){
-  const content=document.createElement('div');content.className='followup-response';content.innerHTML=`<div class="query-bubble">${escapeHTML(question)}</div><div class="response-label">${icon('sparkles')}Settle copilot<span>Local evidence</span></div>${answer}`;$('#followups').append(content);const body=$('#copilot-body');body.scrollTop=body.scrollHeight;
+  const content=document.createElement('div');content.className='followup-response';content.innerHTML=`<div class="query-bubble">${escapeHTML(question)}</div><div class="response-label">${icon('sparkles')}SettleLens copilot<span>Local evidence</span></div>${answer}`;$('#followups').append(content);const body=$('#copilot-body');body.scrollTop=body.scrollHeight;
 }
 function ask(question){
   question=question.trim().slice(0,600);if(!question)return;
@@ -241,7 +241,7 @@ function csv(rows){const keys=[...new Set(rows.flatMap(Object.keys))];const cell
 function exportReport(){
   const rows=filteredRows().map(t=>{const r=reconcile(t);return {transaction_id:t.id,merchant_id:MERCHANT,customer:t.customer,payment_date:t.date,currency:'INR',captured_minor:r.captured_minor,fee_minor:r.fees_minor,expected_minor:r.expected_minor,confirmed_bank_credit_minor:r.has_bank_credit?r.credited_minor:'',status:r.status,explanation:r.explanation,exception:r.exception,next_step:r.next,as_of:AS_OF};});
   if(!rows.length){notify('No matching transactions to export. Clear the filters first.');return;}
-  download('settle-report.csv',csv(rows),'text/csv;charset=utf-8');
+  download('settlelens-report.csv',csv(rows),'text/csv;charset=utf-8');
 }
 
 renderIcons();renderDateOptions();renderDatasetChrome();renderMetrics();renderTable();selectTransaction(state.selected);setView('overview');
@@ -269,30 +269,33 @@ $('#chat-input').maxLength=600;
 $('#chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#chat-form').requestSubmit();}});
 $('#dialog-close').addEventListener('click',closeDialog);
 dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();}});
-$('#guide-button').addEventListener('click',showGuide);$('#help-button').addEventListener('click',showGuide);
+$('#guide-button').addEventListener('click',showGuide);
 $('#export-button').addEventListener('click',exportReport);
 $('#hero-investigate').addEventListener('click',()=>{selectTransaction(transactions[0].id,null,true);$('#chat-input').focus({preventScroll:true});});
 
 // --- Supabase User Profile Sync ---
 (async () => {
-  const isDemoMode = !window.SETTLE_CONFIG?.SUPABASE_URL || window.SETTLE_CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL';
+  const authConfig = window.SETTLELENS_CONFIG || window.SETTLE_CONFIG;
+  const isDemoMode = !authConfig?.SUPABASE_URL || authConfig.SUPABASE_URL === 'YOUR_SUPABASE_URL';
   
   const logoutBtn = $('#logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-      if (!isDemoMode && window.supabase) {
-        const client = window.supabase.createClient(window.SETTLE_CONFIG.SUPABASE_URL, window.SETTLE_CONFIG.SUPABASE_ANON_KEY);
+      if (!isDemoMode) {
+        const supabase = await window.SettleLensLoadSupabase();
+        const client = supabase.createClient(authConfig.SUPABASE_URL, authConfig.SUPABASE_ANON_KEY);
         await client.auth.signOut();
       }
       window.location.replace('/login.html');
     });
   }
 
-  if (isDemoMode || !window.supabase) return;
+  if (isDemoMode) return;
 
-  const client = window.supabase.createClient(
-    window.SETTLE_CONFIG.SUPABASE_URL,
-    window.SETTLE_CONFIG.SUPABASE_ANON_KEY
+  const supabase = await window.SettleLensLoadSupabase();
+  const client = supabase.createClient(
+    authConfig.SUPABASE_URL,
+    authConfig.SUPABASE_ANON_KEY
   );
 
   const { data: { session } } = await client.auth.getSession();

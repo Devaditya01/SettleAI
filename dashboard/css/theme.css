@@ -23,6 +23,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .sidebar,.topbar,.copilot,.copilot-compose,.dialog-top,dialog,.card,.metric{background:var(--panel);border-color:var(--line)}
 .sidebar{background:var(--canvas)}
 .brand{font-weight:650}.brand-mark i{background:var(--ink)}.brand-dot{color:var(--soft)}
+.brand .brand-logo-image{display:block;width:170px;height:auto;max-height:58px;object-fit:contain}
+[data-theme="pearl"] .brand .brand-logo-image{filter:brightness(.18)}
 .workspace,.environment,.demo-note,.query-bubble,.source-footnote,.guide-notice,.record-json{background:var(--raised);border-color:var(--line)}
 .workspace-logo,.copilot-logo,.source-card-icon,.guide-number,.nav-count{background:var(--accent-wash);color:var(--accent)}
 .avatar{background:var(--raised);border-color:var(--line);color:var(--soft)}

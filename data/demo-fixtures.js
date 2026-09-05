@@ -1,7 +1,7 @@
 (function (root, factory) {
   const dataset = factory();
   if (typeof module === 'object' && module.exports) module.exports = dataset;
-  if (root) root.SettleDemoData = dataset;
+  if (root) root.SettleLensDemoData = dataset;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
