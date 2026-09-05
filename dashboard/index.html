@@ -24,7 +24,8 @@
       <div class="workspace"><span class="workspace-logo" id="workspace-logo">IR</span><div><strong id="workspace-name">Imported Records</strong><small>Merchant workspace</small></div><span class="workspace-chevron" data-icon="chevrons"></span></div>
       <div class="nav-label">WORKSPACE</div>
       <nav>
-        <button class="nav-item active" data-view="overview"><span data-icon="overview"></span>Overview</button>
+        <button class="nav-item active" data-view="investigate"><span data-icon="sparkles"></span>Investigate</button>
+        <button class="nav-item" data-view="overview"><span data-icon="overview"></span>Overview</button>
         <button class="nav-item" data-view="transactions"><span data-icon="transactions"></span>Transactions</button>
         <button class="nav-item" data-view="exceptions"><span data-icon="alert"></span>Exceptions<span id="nav-exceptions" class="nav-count"></span></button>
         <button class="nav-item" data-view="sources"><span data-icon="database"></span>Data sources<span class="nav-dot"></span></button>
@@ -43,6 +44,40 @@
       </header>
       <div class="content-grid">
         <main id="main" tabindex="-1">
+          <section class="investigate-view" id="investigate-view" aria-labelledby="investigate-title" hidden>
+            <div class="investigate-start" id="investigate-start">
+              <span class="investigate-mark" data-icon="sparkles" aria-hidden="true"></span>
+              <span class="investigate-kicker">SETTLEMENT COPILOT</span>
+              <h1 id="investigate-title">Where is your settlement?</h1>
+              <p>Enter a transaction ID. SettleLens will connect the gateway, ledger, and bank records before explaining the outcome.</p>
+              <form class="investigate-form" id="investigate-form">
+                <label class="sr-only" for="investigate-input">Enter a transaction ID</label>
+                <span data-icon="search" aria-hidden="true"></span>
+                <input id="investigate-input" type="text" inputmode="text" autocomplete="off" placeholder="Enter your transaction ID" maxlength="80" required>
+                <button type="submit" aria-label="Investigate transaction"><span data-icon="arrow-up"></span></button>
+              </form>
+              <p class="investigate-error" id="investigate-error" role="alert" hidden></p>
+              <div class="investigate-examples" id="investigate-examples" aria-label="Example transactions"></div>
+            </div>
+            <div class="investigate-loading" id="investigate-loading" aria-live="polite" hidden>
+              <span class="investigate-mark" data-icon="sparkles" aria-hidden="true"></span>
+              <strong>Tracing the settlement</strong>
+              <div><span>Gateway</span><i></i><span>Ledger</span><i></i><span>Bank</span></div>
+            </div>
+            <div class="investigate-result" id="investigate-result" hidden>
+              <div class="investigate-result-top">
+                <div><span class="eyebrow">INVESTIGATION</span><h1 id="investigate-result-title"></h1></div>
+                <button class="button button-outline" id="new-investigation"><span data-icon="search"></span>New investigation</button>
+              </div>
+              <div id="investigate-report"></div>
+              <form class="investigate-form investigate-dock" id="investigate-dock-form">
+                <label class="sr-only" for="investigate-dock-input">Investigate another transaction</label>
+                <span data-icon="sparkles" aria-hidden="true"></span>
+                <input id="investigate-dock-input" type="text" inputmode="text" autocomplete="off" placeholder="Investigate another transaction" maxlength="80" required>
+                <button type="submit" aria-label="Investigate transaction"><span data-icon="arrow-up"></span></button>
+              </form>
+            </div>
+          </section>
           <div class="page-heading"><div><h1 id="page-title">Your money. In the clear.</h1><p id="page-subtitle" hidden></p></div><button class="button button-outline export-button" id="export-button"><span data-icon="download"></span>Export<span class="export-long"> report</span></button></div>
 
           <section class="hero" id="hero" aria-label="Settlement assistant introduction">

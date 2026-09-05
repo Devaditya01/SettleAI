@@ -77,9 +77,9 @@ document.querySelectorAll('.tilt').forEach(el=>{
   el.addEventListener('pointerleave',()=>{el.style.transform='';});
 });
 const steps=[
-  ['01 / GATEWAY','Confirms the payment and its settlement ID.'],
-  ['02 / LEDGER','Shows the fees and the amount payable.'],
-  ['03 / BANK','Checks bank credits and failed attempts. Missing outcomes stay unknown.']
+  ['01 / GATEWAY','Confirms the capture, amount, and settlement reference used to match the case.'],
+  ['02 / LEDGER','Calculates the expected payable from the captured amount, fees, and recorded adjustments.'],
+  ['03 / BANK','Verifies whether the payout was credited, rejected, or remains unconfirmed. A missing outcome stays unknown.']
 ];
 document.querySelectorAll('.source-node').forEach(button=>{
   button.setAttribute('aria-pressed',String(button.classList.contains('active')));

@@ -1,1 +1,1 @@
-"""Settlelens backend package."""
+"""SettleLens backend package."""

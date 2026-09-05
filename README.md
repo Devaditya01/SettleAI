@@ -1,8 +1,8 @@
-# Settlelens
+# SettleLens
 
-An evidence-driven settlement support frontend, branded **Settle**, built for PS-8.
+An evidence-driven settlement support frontend, branded **SettleLens**, built for PS-8.
 
-![Settlelens demo preview](docs/preview.png)
+![SettleLens preview](docs/preview.png)
 
 Open `index.html` in a modern browser. No installation, API key, database, or build step is required. Keep the extracted folders together. The landing page opens the dashboard at `dashboard/index.html`.
 

@@ -61,7 +61,7 @@ const transactions = DATASET.transactions.map(meta=>({
   bank:recordsFor('bank',meta.transaction_id),
   ledger:recordsFor('ledger',meta.transaction_id)
 }));
-const state = {view:'overview',filter:'all',search:'',date:'all',selected: transactions.length > 0 ? transactions[0].id : null};
+const state = {view:'investigate',filter:'all',search:'',date:'all',selected: transactions.length > 0 ? transactions[0].id : null};
 const sourceRecords = type => DATASET.sources[type] || [];
 const statusBadge = status => {const safe=Object.hasOwn(STATUS_LABEL,status)?status:'review';return `<span class="status ${safe}">${STATUS_LABEL[safe]}</span>`;};
 const reconcile = transaction => window.SettleLensEngine.reconcile(transaction,{asOf:AS_OF});
@@ -172,9 +172,14 @@ function breakdownHTML(t){
   const r=reconcile(t);
   return `<div class="breakdown-row"><span>Payment captured</span><strong>${money(r.captured_minor)}</strong></div><div class="breakdown-row"><span>Recorded fee deduction</span><strong>−${money(r.fees_minor)}</strong></div><div class="breakdown-row total"><span>Expected payable</span><strong>${money(r.expected_minor)}</strong></div><div class="breakdown-row"><span>Confirmed bank credit</span><strong>${r.has_bank_credit?money(r.credited_minor):'Not confirmed'}</strong></div>${r.has_bank_credit?`<div class="breakdown-row"><span>Difference from expected</span><strong>${money(Math.abs(r.expected_minor-r.credited_minor))}</strong></div>`:''}`;
 }
+function fullInvestigationHTML(t){
+  const r=reconcile(t);
+  return `<div class="detail-summary"><p>${escapeHTML(t.customer)} · ${escapeHTML(MERCHANT_NAME)}<br>Snapshot: ${escapeHTML(timeLabel(AS_OF))} IST</p>${statusBadge(r.status)}</div><div class="finding-meta"><span>${escapeHTML(r.reason_code)}</span><span>${escapeHTML(r.certainty)}</span></div><h3 class="answer-title">${escapeHTML(r.title)}</h3><p class="detail-description">${escapeHTML(r.explanation)}</p><div class="detail-grid"><div><h3 class="detail-heading">The complete timeline</h3><div class="detail-timeline">${renderTimeline(t,true)}</div></div><div><h3 class="detail-heading">Follow the money</h3>${breakdownHTML(t)}<p class="guide-notice">The payable amount is calculated from the loaded records for this transaction.</p></div></div><div class="exception-box ${r.exception?'':'no-exception'}"><div class="exception-box-title">${icon(r.exception?'alert':'check')}${r.exception?'Open exception':'No exceptions detected'}</div><p>${escapeHTML(r.exception||'All loaded records reconcile for this transaction.')}</p></div><p class="next-step"><strong>Recommended next step</strong><br>${escapeHTML(r.next)}</p><h3 class="detail-heading">Inspect the evidence</h3><div class="evidence-list">${evidenceChips(t)}</div><button class="button button-outline investigation-export" data-export-case="${escapeHTML(t.id)}">${icon('download')}Export investigation JSON</button>`;
+}
 function showTrace(id){
-  const t=transactions.find(t=>t.id===id),r=reconcile(t);
-  openDialog(`${t.id} · Full investigation`,`<div class="detail-summary"><p>${escapeHTML(t.customer)} · ${escapeHTML(MERCHANT_NAME)}<br>Snapshot: ${escapeHTML(timeLabel(AS_OF))} IST</p>${statusBadge(r.status)}</div><div class="finding-meta"><span>${escapeHTML(r.reason_code)}</span><span>${escapeHTML(r.certainty)}</span></div><h3 class="answer-title">${escapeHTML(r.title)}</h3><p class="detail-description">${escapeHTML(r.explanation)}</p><div class="detail-grid"><div><h3 class="detail-heading">The complete timeline</h3><div class="detail-timeline">${renderTimeline(t,true)}</div></div><div><h3 class="detail-heading">Follow the money</h3>${breakdownHTML(t)}<p class="guide-notice">The payable amount is calculated from the loaded records for this transaction.</p></div></div><div class="exception-box ${r.exception?'':'no-exception'}"><div class="exception-box-title">${icon(r.exception?'alert':'check')}${r.exception?'Open exception':'No exceptions detected'}</div><p>${escapeHTML(r.exception||'All loaded records reconcile for this transaction.')}</p></div><p class="next-step"><strong>Recommended next step</strong><br>${escapeHTML(r.next)}</p><h3 class="detail-heading">Inspect the evidence</h3><div class="evidence-list">${evidenceChips(t)}</div><button class="button button-outline" style="margin-top:20px" data-export-case="${escapeHTML(id)}">${icon('download')}Export investigation JSON</button>`);
+  const t=transactions.find(t=>t.id===id);
+  if(!t)return;
+  openDialog(`${t.id} · Full investigation`,fullInvestigationHTML(t));
 }
 function showEvidence(type,id){
   const t=transactions.find(t=>t.id===id),records=t[type];
@@ -210,11 +215,46 @@ function scheduleOverviewScrollNav(){
 }
 function setView(view){
   state.view=view;state.filter='all';state.search='';state.date='all';$('#transaction-search').value='';$('#date-filter').value='all';
-  const info={overview:['Overview','Overview','A little less chasing. A lot more clarity.'],transactions:['Transactions','Transactions','Follow a payment from capture to bank credit.'],exceptions:['Exceptions','Exceptions','Records that need verification before support confirms an outcome.'],sources:['Data sources','Data sources','Three sources. One connected view of your payments.']}[view];
+  const info={investigate:['Investigate','Investigate','Trace one settlement across every source.'],overview:['Overview','Overview','A little less chasing. A lot more clarity.'],transactions:['Transactions','Transactions','Follow a payment from capture to bank credit.'],exceptions:['Exceptions','Exceptions','Records that need verification before support confirms an outcome.'],sources:['Data sources','Data sources','Three sources. One connected view of your payments.']}[view];
   $('#breadcrumb-current').textContent=info[0];$('#page-title').textContent=info[1];$('#page-subtitle').textContent=info[2];
   setSidebarActive(view);
-  $('#hero').hidden=view!=='overview';$('#flow-card').hidden=view!=='overview';$('#metrics').hidden=view==='sources';$('#transaction-card').hidden=view==='sources';$('#source-view').hidden=view!=='sources';$('.tabs').hidden=view==='exceptions';$('#table-title').textContent=view==='exceptions'?'Exception queue':'Transactions';
-  $('#export-button').hidden=view==='sources';renderTable();if(view==='sources')renderSources();updateOverviewScrollNav();
+  const investigating=view==='investigate';
+  $('#investigate-view').hidden=!investigating;$('.page-heading').hidden=investigating;$('.content-grid').classList.toggle('investigate-mode',investigating);$('main').classList.toggle('investigate-mode',investigating);$('.copilot').hidden=investigating;
+  $('#hero').hidden=view!=='overview';$('#flow-card').hidden=view!=='overview';$('#metrics').hidden=view==='sources'||investigating;$('#transaction-card').hidden=view==='sources'||investigating;$('#source-view').hidden=view!=='sources';$('.tabs').hidden=view==='exceptions';$('#table-title').textContent=view==='exceptions'?'Exception queue':'Transactions';
+  $('#export-button').hidden=view==='sources'||investigating;renderTable();if(view==='sources')renderSources();updateOverviewScrollNav();
+  if(investigating&&!$('#investigate-start').hidden)setTimeout(()=>$('#investigate-input').focus({preventScroll:true}),0);
+}
+
+let investigationRun=0;
+function resetInvestigation(){
+  investigationRun+=1;
+  $('#investigate-loading').hidden=true;$('#investigate-result').hidden=true;$('#investigate-start').hidden=false;$('#investigate-error').hidden=true;$('#investigate-input').value='';
+  window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  setTimeout(()=>$('#investigate-input').focus({preventScroll:true}),0);
+}
+function runInvestigation(rawValue){
+  const value=String(rawValue||'').trim();
+  const id=normalizeTransactionId(value);
+  const t=transactions.find(transaction=>transaction.id===id);
+  if(!t){
+    const error=$('#investigate-error');error.textContent=`No matching transaction for “${value}” in this workspace.`;error.hidden=false;$('#investigate-input').focus();return;
+  }
+  state.selected=t.id;$('#investigate-error').hidden=true;$('#investigate-start').hidden=true;$('#investigate-result').hidden=true;$('#investigate-loading').hidden=false;
+  const run=++investigationRun;
+  const finish=()=>{
+    if(run!==investigationRun)return;
+    $('#investigate-loading').hidden=true;$('#investigate-result').hidden=false;$('#investigate-result-title').textContent=`${t.id} · Full investigation`;$('#investigate-report').innerHTML=fullInvestigationHTML(t);$('#breadcrumb-current').textContent=t.id;$('#investigate-dock-input').value='';renderTable();window.scrollTo({top:0,behavior:'auto'});
+  };
+  setTimeout(finish,matchMedia('(prefers-reduced-motion: reduce)').matches?0:650);
+}
+function renderInvestigationExamples(){
+  const examples=[];
+  for(const status of ['settled','pending','review','failed']){
+    const match=transactions.find(t=>reconcile(t).status===status&&!examples.includes(t));
+    if(match)examples.push(match);
+    if(examples.length===3)break;
+  }
+  $('#investigate-examples').innerHTML=examples.length?`<span>Try an example</span>${examples.map(t=>`<button data-investigate-id="${escapeHTML(t.id)}">${escapeHTML(t.id)}</button>`).join('')}`:'';
 }
 function appendFollowup(question,answer){
   const content=document.createElement('div');content.className='followup-response';content.innerHTML=`<div class="query-bubble">${escapeHTML(question)}</div><div class="response-label">${icon('sparkles')}SettleLens copilot<span>Local evidence</span></div>${answer}`;$('#followups').append(content);const body=$('#copilot-body');body.scrollTop=body.scrollHeight;
@@ -244,14 +284,17 @@ function exportReport(){
   download('settlelens-report.csv',csv(rows),'text/csv;charset=utf-8');
 }
 
-renderIcons();renderDateOptions();renderDatasetChrome();renderMetrics();renderTable();selectTransaction(state.selected);setView('overview');
+renderInvestigationExamples();renderIcons();renderDateOptions();renderDatasetChrome();renderMetrics();renderTable();selectTransaction(state.selected);setView('investigate');
+const linkedTransaction=new URLSearchParams(window.location.search).get('transaction');
+if(linkedTransaction)runInvestigation(linkedTransaction);
 window.addEventListener('scroll',scheduleOverviewScrollNav,{passive:true});
 window.addEventListener('resize',scheduleOverviewScrollNav);
 updateOverviewScrollNav();
 document.addEventListener('click',e=>{
   const el=e.target.closest('button,a,tr[data-id]');if(!el)return;
-  if(el.matches('.brand')){e.preventDefault();setView('overview');return;}
+  if(el.matches('.brand')){e.preventDefault();setView('investigate');return;}
   if(el.dataset.view){setView(el.dataset.view);return;}
+  if(el.dataset.investigateId){runInvestigation(el.dataset.investigateId);return;}
   if(el.dataset.filter){state.filter=el.dataset.filter;renderTable();return;}
   if(el.dataset.trace){showTrace(el.dataset.trace);return;}
   if(el.dataset.source){showEvidence(el.dataset.source,el.dataset.transaction);return;}
@@ -260,6 +303,7 @@ document.addEventListener('click',e=>{
   if(el.dataset.downloadSource){const key=el.dataset.downloadSource;download({gateway:'gateway_logs.csv',bank:'bank_settlements.csv',ledger:'ledger_entries.csv'}[key],csv(sourceRecords(key)),'text/csv;charset=utf-8');return;}
   if(el.dataset.exportCase){const t=transactions.find(t=>t.id===el.dataset.exportCase);download(`${t.id}-investigation.json`,JSON.stringify({rule_version:'csv-rules-1.0',...reconcile(t),evidence:{gateway:t.gateway,bank:t.bank,ledger:t.ledger}},null,2),'application/json');return;}
   if(el.id==='reset-filters'){state.filter='all';state.search='';state.date='all';$('#transaction-search').value='';$('#date-filter').value='all';renderTable();return;}
+  if(el.id==='new-investigation'){resetInvestigation();return;}
   const row=el.closest('tr[data-id]');if(row)selectTransaction(row.dataset.id,null,true);
 });
 $('#transaction-search').addEventListener('input',e=>{state.search=e.target.value.slice(0,100);renderTable();});
@@ -267,11 +311,13 @@ $('#date-filter').addEventListener('change',e=>{state.date=e.target.value;render
 $('#chat-form').addEventListener('submit',e=>{e.preventDefault();const value=$('#chat-input').value;$('#chat-input').value='';ask(value);});
 $('#chat-input').maxLength=600;
 $('#chat-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#chat-form').requestSubmit();}});
+$('#investigate-form').addEventListener('submit',e=>{e.preventDefault();runInvestigation($('#investigate-input').value);});
+$('#investigate-dock-form').addEventListener('submit',e=>{e.preventDefault();runInvestigation($('#investigate-dock-input').value);});
 $('#dialog-close').addEventListener('click',closeDialog);
 dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialog();}});
 $('#guide-button').addEventListener('click',showGuide);
 $('#export-button').addEventListener('click',exportReport);
-$('#hero-investigate').addEventListener('click',()=>{selectTransaction(transactions[0].id,null,true);$('#chat-input').focus({preventScroll:true});});
+$('#hero-investigate').addEventListener('click',()=>setView('investigate'));
 
 // --- Supabase User Profile Sync ---
 (async () => {

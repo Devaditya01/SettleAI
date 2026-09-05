@@ -1,4 +1,4 @@
-# Settle — visual direction
+# SettleLens — visual direction
 
 Midnight uses charcoal, ivory, and muted sage. Pearl uses warm ivory and soft green. The landing pages and dashboard share these palettes, with an edition switch in the dashboard.
 

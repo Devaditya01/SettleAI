@@ -1,8 +1,8 @@
-# Settlelens Delay-Risk Model Card
+# SettleLens Delay-Risk Model Card
 
 ## Model overview
 
-Settlelens uses an `XGBClassifier` to estimate whether an in-progress, otherwise successful payment will miss the configured settlement service-level agreement (SLA). The model is advisory. Deterministic transaction tracing and rules remain the authoritative source for settlement status and root-cause diagnosis.
+SettleLens uses an `XGBClassifier` to estimate whether an in-progress, otherwise successful payment will miss the configured settlement service-level agreement (SLA). The model is advisory. Deterministic transaction tracing and rules remain the authoritative source for settlement status and root-cause diagnosis.
 
 | Item | Value |
 | --- | --- |

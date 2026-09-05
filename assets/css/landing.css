@@ -190,26 +190,36 @@ footer { border-top: 1px solid var(--line); margin: 0 5%; padding: 34px 0; displ
 }
 @media(prefers-reduced-motion:reduce) { :root { scroll-behavior: auto; } *,*:before,*:after { animation: none!important; transition: none!important; }.boot { display: none!important; }.reveal,.js-motion .reveal,.js-motion .split-lines > span { opacity: 1!important; transform: none!important; filter: none!important; }.hero-visual { transform: none!important; } }
 
-/* Keep the landing footer limited to its two legal items. */
+/* A restrained legal footer with depth, motion, and only the required copy. */
 body:not(.legal-page)>footer:not(.minimal-footer) { display: none!important; }
-.minimal-footer {
-  min-height: 86px;
-  padding: 0;
-  justify-content: space-between;
-  border-top: 1px solid var(--line);
-}
-.minimal-footer a,
-.minimal-footer span {
-  color: var(--muted);
-  font: 10px "Segoe UI", Arial, sans-serif;
-  letter-spacing: 0;
-}
-.minimal-footer a:hover { color: var(--fg); }
+.minimal-footer { position:relative; min-height:148px; margin:0; padding:0 clamp(5%,7vw,9%); border:0; background:linear-gradient(180deg,#11110f 0%,#0b0c0a 100%); overflow:hidden; }
+.minimal-footer:before { content:""; position:absolute; width:420px; height:150px; left:50%; bottom:-135px; transform:translateX(-50%); border-radius:50%; background:#baa98718; filter:blur(28px); pointer-events:none; }
+.minimal-footer .footer-shell { position:relative; width:100%; min-height:148px; max-width:1440px; margin:0 auto; display:grid; grid-template-columns:auto minmax(80px,1fr) auto; align-items:center; gap:clamp(24px,5vw,80px); border-top:1px solid var(--line); }
+.minimal-footer .footer-shell:before { content:""; position:absolute; left:0; top:-1px; width:clamp(70px,12vw,170px); height:1px; background:linear-gradient(90deg,#d7c7a7,transparent); }
+.minimal-footer a { display:inline-flex; align-items:center; gap:18px; padding:13px 17px; border:1px solid #b4a58b35; border-radius:999px; color:#c6bba7; font:10px "Segoe UI",Arial,sans-serif; text-decoration:none; transition:color .3s,border-color .3s,background .3s,transform .3s; }
+.minimal-footer a b { color:#867b68; font:normal 12px/1 Consolas,monospace; transition:transform .3s,color .3s; }
+.minimal-footer a:hover { color:#f1eadf; border-color:#bdae936b; background:#ffffff08; transform:translateY(-2px); }
+.minimal-footer a:hover b { color:#d4c5aa; transform:translate(2px,-2px); }
+.minimal-footer .footer-pulse { position:relative; height:1px; background:linear-gradient(90deg,transparent,#a7997e38,transparent); }
+.minimal-footer .footer-pulse:after { content:""; position:absolute; left:50%; top:50%; width:5px; height:5px; border-radius:50%; background:#b9ac92; box-shadow:0 0 0 5px #b9ac9211,0 0 24px #d8c8a66b; transform:translate(-50%,-50%); animation:footer-breathe 3.2s ease-in-out infinite; }
+.minimal-footer p { display:block; margin:0; color:#817a6d; font:9px Consolas,monospace; letter-spacing:.06em; white-space:nowrap; }
+.pearl .minimal-footer { background:linear-gradient(180deg,#e3dfd4 0%,#dcd8cc 100%); }
+.pearl .minimal-footer:before { background:#8a90712b; }
+.pearl .minimal-footer a { color:#696c5b; border-color:#777d6538; }
+.pearl .minimal-footer a:hover { color:#393c32; border-color:#777d6570; background:#ffffff3d; }
+.pearl .minimal-footer p { color:#7e806f; }
+.pearl .minimal-footer .footer-pulse { background:linear-gradient(90deg,transparent,#777d6540,transparent); }
+.pearl .minimal-footer .footer-pulse:after { background:#7d846c; box-shadow:0 0 0 5px #7d846c14,0 0 22px #777d6560; }
+@keyframes footer-breathe { 0%,100% { opacity:.45; transform:translate(-50%,-50%) scale(.8); } 50% { opacity:1; transform:translate(-50%,-50%) scale(1.15); } }
 @media(max-width:600px) {
-  .minimal-footer { min-height: 74px; padding: 0; margin: 0 7%; }
-  .minimal-footer a,.minimal-footer span { font-size: 9px; }
+  .minimal-footer { min-height:126px; padding:0 7%; }
+  .minimal-footer .footer-shell { min-height:126px; grid-template-columns:1fr auto; gap:20px; }
+  .minimal-footer .footer-pulse { display:none; }
+  .minimal-footer a { gap:13px; padding:11px 14px; font-size:9px; }
+  .minimal-footer p { font-size:8px; letter-spacing:.02em; }
   .logo .brand-logo-image { width: 145px; }
   .boot-logo .brand-logo-image { width: 250px; }
   .mini-mark,.mini-mark .brand-logo-image { width: 68px; }
   .mini-mark { flex-basis: 68px; }
 }
+@media(prefers-reduced-motion:reduce) { .minimal-footer .footer-pulse:after { animation:none; } }

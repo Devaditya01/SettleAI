@@ -1,5 +1,5 @@
 """
-Streamlit UI for the Settlement Intelligence Agent (Settlelens).
+Streamlit UI for the Settlement Intelligence Agent (SettleLens).
 Phases 16 & 17: Sequence of Evidence View & Date-to-Transaction-ID Search.
 """
 
@@ -22,7 +22,7 @@ from src.recommendations import get_recommendation
 # Page Configuration & Styling
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Settlelens — Settlement Intelligence Agent",
+    page_title="SettleLens — Settlement Intelligence Agent",
     page_icon="✦",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -146,7 +146,7 @@ except Exception as e:
 # Sidebar & Filters (Phase 17 Date Search & ID Selector)
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown('<div class="brand-header"><span class="brand-mark">✦</span> Settlelens</div>', unsafe_allow_html=True)
+    st.markdown('<div class="brand-header"><span class="brand-mark">✦</span> SettleLens</div>', unsafe_allow_html=True)
     st.markdown('<div class="brand-sub">Predictive Settlement Intelligence</div>', unsafe_allow_html=True)
     st.divider()
 
