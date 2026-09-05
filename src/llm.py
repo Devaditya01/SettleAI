@@ -321,14 +321,17 @@ def generate_explanation(evidence_packet: EvidencePacket) -> str:
 def _generate_text_with_gemini(prompt: str) -> str:
     if not _api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
+    from google import genai as _genai
+    from google.genai import types as _genai_types
     client = _create_client(_api_key)
     response = client.models.generate_content(
         model=_MODEL_NAME,
         contents=prompt,
-        config={
-            "temperature": 0.1,
-            "max_output_tokens": 500,
-        },
+        config=_genai_types.GenerateContentConfig(
+            temperature=0.4,
+            max_output_tokens=600,
+            automatic_function_calling=_genai_types.AutomaticFunctionCallingConfig(disable=True),
+        ),
     )
     return response.text
 
@@ -356,22 +359,40 @@ def _generate_text_with_groq(prompt: str) -> str:
     payload = response.json()
     return payload["choices"][0]["message"]["content"]
 
-def generate_chat_result(evidence_packet: EvidencePacket, question: str) -> str:
-    """Answers a specific user question using the deterministic evidence packet."""
-    packet = _require_packet(evidence_packet)
-    evidence_json = json.dumps(
-        packet.model_dump(mode="json"),
-        ensure_ascii=True,
-        separators=(",", ":"),
-        sort_keys=True,
-    )
-    prompt = (
-        "You are an AI assistant helping a support agent understand a settlement transaction. "
-        "Use ONLY the following evidence data to answer the user's question. "
-        "Do not invent or infer data. Keep your answer concise and helpful.\n\n"
-        f"Evidence JSON: {evidence_json}\n\n"
-        f"Question: {question}"
-    )
+def generate_chat_result(evidence_packet: EvidencePacket | None, question: str) -> str:
+    """Answers a user question. If an evidence packet is provided, grounds the
+    answer in the transaction evidence. Handles greetings and general questions
+    naturally without needing evidence."""
+
+    if evidence_packet is not None:
+        packet = _require_packet(evidence_packet)
+        evidence_json = json.dumps(
+            packet.model_dump(mode="json"),
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        prompt = (
+            "You are SettleLens Copilot, a friendly and expert AI assistant for payment "
+            "settlement analysis. You help support agents trace payments across gateway, "
+            "bank, and ledger records.\n\n"
+            "For greetings or general questions, respond conversationally and helpfully. "
+            "For transaction-specific questions, base your answer strictly on the evidence "
+            "JSON provided below — do not invent numbers, dates, or outcomes.\n\n"
+            "Keep answers concise (2-4 sentences max unless a detailed breakdown is needed). "
+            "Be warm, clear, and professional.\n\n"
+            f"Transaction Evidence:\n{evidence_json}\n\n"
+            f"User: {question}\nAssistant:"
+        )
+    else:
+        prompt = (
+            "You are SettleLens Copilot, a friendly and expert AI assistant for payment "
+            "settlement analysis. You help support agents trace payments across gateway, "
+            "bank, and ledger records.\n\n"
+            "Respond helpfully and conversationally. If the user asks about a specific "
+            "transaction, let them know they should first open a transaction investigation.\n\n"
+            f"User: {question}\nAssistant:"
+        )
 
     for provider_name in _configured_provider_names():
         for attempt in range(_LLM_MAX_RETRIES + 1):
@@ -388,4 +409,8 @@ def generate_chat_result(evidence_packet: EvidencePacket, question: str) -> str:
                 if attempt >= _LLM_MAX_RETRIES:
                     break
 
-    return "I am unable to answer your question right now. The deterministic settlement analysis is available in the dashboard."
+    # Friendly fallback for greetings so the chatbot doesn't feel broken
+    q_lower = question.strip().lower()
+    if q_lower in {"hello", "hi", "hey", "hii", "hello!", "hi!", "hey!"}:
+        return "Hello! I'm SettleLens Copilot. Open a transaction investigation and I can answer any questions about the payment's status, fees, timeline, or next steps."
+    return "I'm having trouble connecting to the AI engine right now. Please try again in a moment."
