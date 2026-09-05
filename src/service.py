@@ -226,3 +226,27 @@ def _run_eta_estimation_isolated(
             "confidence": "LOW",
             "reason": "ETA estimation unavailable.",
         }
+
+def chat_transaction(
+    transaction_id: str,
+    question: str,
+    data_dir: str = "data",
+    data: dict[str, Any] | None = None,
+) -> str:
+    """Answers a user question about a specific transaction using the LLM."""
+    # Run the full analysis pipeline to gather all evidence
+    analysis = analyze_transaction(transaction_id, data_dir, data)
+    
+    try:
+        from src.evidence import build_llm_evidence_packet
+        from src.llm import generate_chat_result
+        
+        # Build the strict evidence packet
+        packet = build_llm_evidence_packet(analysis)
+        
+        # Ask the LLM
+        return generate_chat_result(packet, question)
+    except Exception as exc:
+        logger.warning("Chat generation failed: %s", type(exc).__name__)
+        return "I encountered an error generating an answer based on the evidence."
+

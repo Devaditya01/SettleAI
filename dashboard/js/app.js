@@ -267,13 +267,28 @@ function ask(question){
   if(ids.length&&!transactions.some(t=>t.id===ids[0])){appendFollowup(question,`<p>No matching record for <strong>${escapeHTML(ids[0])}</strong> in ${escapeHTML(MERCHANT_NAME)} records. This does not establish whether the transaction exists elsewhere.</p>`);return;}
   const t=ids.length?transactions.find(t=>t.id===ids[0]):getSelected();
   if(ids.length&&t.id!==state.selected)selectTransaction(t.id,question);
-  const r=reconcile(t), q=question.toLowerCase();
-  if(/breakdown|deduct|fee|amount|how much/.test(q))appendFollowup(question,`<p>Here is the recorded breakdown for <strong>${t.id}</strong>.</p><div class="mini-breakdown">${breakdownHTML(t)}</div><div class="evidence-chips">${evidenceChips(t)}</div>`);
-  else if(/next|should|action|retry|fix/.test(q))appendFollowup(question,`<p>${escapeHTML(r.next)}</p><p>${escapeHTML(r.exception||'No open exception was detected in the loaded records.')}</p>`);
-  else if(/missing|exception|uncertain|sure|confiden/.test(q))appendFollowup(question,`<p><strong>${escapeHTML(r.certainty)}.</strong> ${escapeHTML(r.exception||'The credited amount, expected payable, and ledger posting agree in the loaded records.')}</p><div class="evidence-chips">${evidenceChips(t)}</div>`);
-  else if(ids.length||/status|why|settle|credit|payout|trace|happened/.test(q))selectTransaction(t.id,question);
-  else appendFollowup(question,`<p>This workspace can explain the status, amount breakdown, next step, and missing evidence for <strong>${t.id}</strong>. Try “What’s the status?” or enter another transaction ID.</p>`);
+  
+  const bubbleId = 'followup-' + Date.now();
+  const loadingHTML = `<div class="query-bubble">${escapeHTML(question)}</div><div class="response-label">${icon('sparkles')}SettleLens copilot<span>AI Reasoning</span></div><div id="${bubbleId}"><p><em>Thinking...</em></p></div>`;
+  const content = document.createElement('div');
+  content.className = 'followup-response';
+  content.innerHTML = loadingHTML;
+  $('#followups').append(content);
+  
+  const body=$('#copilot-body');
+  body.scrollTop=body.scrollHeight;
   if(window.innerWidth<=850)$('.copilot').scrollIntoView({behavior:'smooth',block:'start'});
+  
+  fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transaction_id: t.id, question: question })
+  }).then(res => res.json()).then(data => {
+      document.getElementById(bubbleId).innerHTML = `<p>${escapeHTML(data.answer).replace(/\\n/g, '<br>')}</p>`;
+      body.scrollTop=body.scrollHeight;
+  }).catch(err => {
+      document.getElementById(bubbleId).innerHTML = `<p style="color: #e74c3c;">Failed to connect to the AI engine.</p>`;
+  });
 }
 function notify(message){const toast=$('#toast');toast.textContent=message;toast.classList.add('show');clearTimeout(notify.timer);notify.timer=setTimeout(()=>toast.classList.remove('show'),3500);}
 function download(filename,content,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);notify(`Downloaded ${filename}`);}

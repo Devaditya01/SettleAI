@@ -30,7 +30,7 @@ except ImportError:
 
 _api_key = os.getenv("GEMINI_API_KEY")
 _groq_api_key = os.getenv("GROQ_API_KEY")
-_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+_MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 _GROQ_MODEL_NAME = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 _GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -316,3 +316,76 @@ def generate_explanation(evidence_packet: EvidencePacket) -> str:
     result = generate_explanation_result(evidence_packet)
     parts = [result["summary"], result["next_step"], result.get("uncertainty")]
     return " ".join(part for part in parts if part)
+
+
+def _generate_text_with_gemini(prompt: str) -> str:
+    if not _api_key:
+        raise RuntimeError("GEMINI_API_KEY is not configured")
+    client = _create_client(_api_key)
+    response = client.models.generate_content(
+        model=_MODEL_NAME,
+        contents=prompt,
+        config={
+            "temperature": 0.1,
+            "max_output_tokens": 500,
+        },
+    )
+    return response.text
+
+def _generate_text_with_groq(prompt: str) -> str:
+    if not _groq_api_key:
+        raise RuntimeError("GROQ_API_KEY is not configured")
+    import requests
+    response = requests.post(
+        _GROQ_URL,
+        headers={
+            "Authorization": f"Bearer {_groq_api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": _GROQ_MODEL_NAME,
+            "messages": [
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.1,
+            "max_tokens": 500,
+        },
+        timeout=_LLM_TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    return payload["choices"][0]["message"]["content"]
+
+def generate_chat_result(evidence_packet: EvidencePacket, question: str) -> str:
+    """Answers a specific user question using the deterministic evidence packet."""
+    packet = _require_packet(evidence_packet)
+    evidence_json = json.dumps(
+        packet.model_dump(mode="json"),
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    prompt = (
+        "You are an AI assistant helping a support agent understand a settlement transaction. "
+        "Use ONLY the following evidence data to answer the user's question. "
+        "Do not invent or infer data. Keep your answer concise and helpful.\n\n"
+        f"Evidence JSON: {evidence_json}\n\n"
+        f"Question: {question}"
+    )
+
+    for provider_name in _configured_provider_names():
+        for attempt in range(_LLM_MAX_RETRIES + 1):
+            try:
+                if provider_name == "gemini":
+                    return _generate_text_with_gemini(prompt)
+                elif provider_name == "groq":
+                    return _generate_text_with_groq(prompt)
+            except Exception as exc:
+                logger.warning(
+                    "LLM text provider %s failed on attempt %d (%s).",
+                    provider_name, attempt + 1, type(exc).__name__,
+                )
+                if attempt >= _LLM_MAX_RETRIES:
+                    break
+
+    return "I am unable to answer your question right now. The deterministic settlement analysis is available in the dashboard."
